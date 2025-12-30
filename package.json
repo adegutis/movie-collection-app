@@ -1,0 +1,23 @@
+{
+  "name": "movie-collection",
+  "version": "1.0.0",
+  "description": "Movie collection management with photo import",
+  "main": "server/index.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "start": "node server/index.js",
+    "import-csv": "node server/scripts/importCsv.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.24.0",
+    "chokidar": "^3.5.3",
+    "cors": "^2.8.5",
+    "csv-parse": "^5.5.0",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "multer": "^2.0.2",
+    "uuid": "^9.0.0"
+  }
+}

@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Movie Collection</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="header-left">
+        <h1>Movie Collection</h1>
+        <a href="/help.html" class="help-link">Help</a>
+      </div>
+      <div class="stats" id="stats"></div>
+    </header>
+
+    <div class="controls">
+      <div class="search-box">
+        <input type="text" id="search" placeholder="Search movies..." autocomplete="off">
+      </div>
+
+      <div class="filters">
+        <label class="filter-group">
+          <span>Format:</span>
+          <select id="format-filter">
+            <option value="">All</option>
+            <option value="dvd">DVD</option>
+            <option value="bluray">Blu-ray</option>
+            <option value="4k">4K Ultra HD</option>
+            <option value="mixed">Mixed</option>
+          </select>
+        </label>
+
+        <label class="filter-group">
+          <input type="checkbox" id="upgrade-filter">
+          <span>Wants Upgrade</span>
+        </label>
+
+        <label class="filter-group">
+          <span>Sort:</span>
+          <select id="sort-by">
+            <option value="title">Title</option>
+            <option value="format">Format</option>
+            <option value="dateAdded">Date Added</option>
+          </select>
+        </label>
+
+        <div class="view-toggle">
+          <button class="view-btn active" id="view-list" title="List view">☰</button>
+          <button class="view-btn" id="view-grid" title="Grid view">▦</button>
+        </div>
+      </div>
+
+      <button class="btn" id="import-photo-btn">Import from Photo</button>
+      <button class="btn btn-primary" id="add-movie-btn">+ Add Movie</button>
+    </div>
+
+    <main class="movie-list" id="movie-list">
+      <!-- Movies rendered here -->
+    </main>
+
+    <!-- Movie Modal -->
+    <div class="modal" id="movie-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="modal-title">Add Movie</h2>
+          <button class="close-btn" id="close-modal">&times;</button>
+        </div>
+        <form id="movie-form">
+          <input type="hidden" id="movie-id">
+
+          <div class="form-group">
+            <label for="title">Title</label>
+            <input type="text" id="title" required>
+          </div>
+
+          <div class="form-group">
+            <label for="format">Format</label>
+            <select id="format">
+              <option value="dvd">DVD</option>
+              <option value="bluray">Blu-ray</option>
+              <option value="4k">4K Ultra HD</option>
+              <option value="mixed">Mixed (DVD + Blu-ray)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="notes">Notes</label>
+            <input type="text" id="notes" placeholder="Edition, season, etc.">
+          </div>
+
+          <div class="form-group upgrade-group">
+            <label>
+              <input type="checkbox" id="want-upgrade">
+              Want to upgrade
+            </label>
+            <select id="upgrade-target" disabled>
+              <option value="bluray">to Blu-ray</option>
+              <option value="4k">to 4K Ultra HD</option>
+            </select>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn" id="cancel-btn">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal" id="delete-modal">
+      <div class="modal-content modal-small">
+        <h3>Delete Movie?</h3>
+        <p id="delete-movie-title"></p>
+        <div class="form-actions">
+          <button class="btn" id="cancel-delete">Cancel</button>
+          <button class="btn btn-danger" id="confirm-delete">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Photo Import Modal -->
+    <div class="modal" id="import-modal">
+      <div class="modal-content modal-wide">
+        <div class="modal-header">
+          <h2>Import from Photo</h2>
+          <button class="close-btn" id="close-import">&times;</button>
+        </div>
+        <div class="import-body">
+          <!-- Upload Step -->
+          <div id="upload-step" class="import-step">
+            <div class="upload-area" id="upload-area">
+              <div class="upload-icon">📷</div>
+              <p>Drag and drop a photo of your disc cases here</p>
+              <p class="upload-hint">or click to select a file</p>
+              <input type="file" id="photo-input" accept="image/*" hidden>
+            </div>
+            <p class="upload-note">Supported formats: JPEG, PNG, GIF, WebP (max 20MB)</p>
+          </div>
+
+          <!-- Analyzing Step -->
+          <div id="analyzing-step" class="import-step" style="display: none;">
+            <div class="analyzing">
+              <div class="spinner"></div>
+              <p>Analyzing photo with AI...</p>
+              <p class="analyzing-hint">This may take a few seconds</p>
+            </div>
+          </div>
+
+          <!-- Results Step -->
+          <div id="results-step" class="import-step" style="display: none;">
+            <div class="results-header">
+              <h3>Detected Movies</h3>
+              <p id="results-count"></p>
+            </div>
+            <div class="results-list" id="results-list">
+              <!-- Results rendered here -->
+            </div>
+            <div class="form-actions">
+              <button class="btn" id="import-cancel">Cancel</button>
+              <button class="btn" id="import-another">Import Another</button>
+              <button class="btn btn-primary" id="import-confirm">Add Selected Movies</button>
+            </div>
+          </div>
+
+          <!-- Error Step -->
+          <div id="error-step" class="import-step" style="display: none;">
+            <div class="import-error">
+              <div class="error-icon">⚠️</div>
+              <h3>Import Error</h3>
+              <p id="error-message"></p>
+              <div class="form-actions">
+                <button class="btn" id="error-close">Close</button>
+                <a href="/help.html" class="btn btn-primary" id="error-help">Setup Guide</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>

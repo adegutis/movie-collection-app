@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Environment variables (contains API keys)
+.env
+
+# Data files (optional - remove these lines if you want to include your collection)
+data/movies.json
+data/backups/
+
+# Uploaded/processed photos
+sources/*.jpg
+sources/*.jpeg
+sources/*.png
+sources/*.gif
+sources/*.webp
+sources/processed/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*

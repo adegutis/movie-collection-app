@@ -1,0 +1,237 @@
+const fs = require('fs');
+const path = require('path');
+const { v4: uuidv4 } = require('uuid');
+const config = require('../config');
+
+const moviesPath = path.join(config.dataDir, 'movies.json');
+const backupsDir = path.join(config.dataDir, 'backups');
+
+let moviesCache = null;
+
+function ensureDirectories() {
+  if (!fs.existsSync(config.dataDir)) {
+    fs.mkdirSync(config.dataDir, { recursive: true });
+  }
+  if (!fs.existsSync(backupsDir)) {
+    fs.mkdirSync(backupsDir, { recursive: true });
+  }
+}
+
+function loadMovies() {
+  ensureDirectories();
+
+  if (moviesCache) {
+    return moviesCache;
+  }
+
+  if (!fs.existsSync(moviesPath)) {
+    moviesCache = {
+      version: '1.0',
+      lastModified: new Date().toISOString(),
+      movies: []
+    };
+    return moviesCache;
+  }
+
+  const data = fs.readFileSync(moviesPath, 'utf-8');
+  moviesCache = JSON.parse(data);
+  return moviesCache;
+}
+
+function createBackup() {
+  if (!fs.existsSync(moviesPath)) return;
+
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const backupPath = path.join(backupsDir, `movies-${timestamp}.json`);
+  fs.copyFileSync(moviesPath, backupPath);
+
+  // Clean old backups, keep only the most recent
+  const backups = fs.readdirSync(backupsDir)
+    .filter(f => f.startsWith('movies-') && f.endsWith('.json'))
+    .sort()
+    .reverse();
+
+  backups.slice(config.maxBackups).forEach(f => {
+    fs.unlinkSync(path.join(backupsDir, f));
+  });
+}
+
+function saveMovies(data) {
+  ensureDirectories();
+  createBackup();
+
+  data.lastModified = new Date().toISOString();
+  moviesCache = data;
+
+  fs.writeFileSync(moviesPath, JSON.stringify(data, null, 2));
+}
+
+function getAll(filters = {}) {
+  const data = loadMovies();
+  let movies = [...data.movies];
+
+  // Search by title
+  if (filters.search) {
+    const search = filters.search.toLowerCase();
+    movies = movies.filter(m => m.title.toLowerCase().includes(search));
+  }
+
+  // Filter by format
+  if (filters.format) {
+    const formats = Array.isArray(filters.format) ? filters.format : [filters.format];
+    movies = movies.filter(m => formats.includes(m.format));
+  }
+
+  // Filter by upgrade status
+  if (filters.wantToUpgrade !== undefined) {
+    const want = filters.wantToUpgrade === 'true' || filters.wantToUpgrade === true;
+    movies = movies.filter(m => m.wantToUpgrade === want);
+  }
+
+  // Sort
+  const sortBy = filters.sortBy || 'title';
+  const sortOrder = filters.sortOrder === 'desc' ? -1 : 1;
+
+  movies.sort((a, b) => {
+    let aVal = a[sortBy] || '';
+    let bVal = b[sortBy] || '';
+    if (typeof aVal === 'string') aVal = aVal.toLowerCase();
+    if (typeof bVal === 'string') bVal = bVal.toLowerCase();
+    if (aVal < bVal) return -1 * sortOrder;
+    if (aVal > bVal) return 1 * sortOrder;
+    return 0;
+  });
+
+  return movies;
+}
+
+function getById(id) {
+  const data = loadMovies();
+  return data.movies.find(m => m.id === id);
+}
+
+function create(movieData) {
+  const data = loadMovies();
+
+  const movie = {
+    id: uuidv4(),
+    title: movieData.title,
+    format: normalizeFormat(movieData.format),
+    notes: movieData.notes || '',
+    wantToUpgrade: movieData.wantToUpgrade || false,
+    upgradeTarget: movieData.upgradeTarget || null,
+    dateAdded: new Date().toISOString(),
+    dateModified: new Date().toISOString(),
+    source: movieData.source || 'manual',
+    sourceFile: movieData.sourceFile || null
+  };
+
+  data.movies.push(movie);
+  saveMovies(data);
+
+  return movie;
+}
+
+function update(id, updates) {
+  const data = loadMovies();
+  const index = data.movies.findIndex(m => m.id === id);
+
+  if (index === -1) {
+    return null;
+  }
+
+  const movie = data.movies[index];
+
+  if (updates.title !== undefined) movie.title = updates.title;
+  if (updates.format !== undefined) movie.format = normalizeFormat(updates.format);
+  if (updates.notes !== undefined) movie.notes = updates.notes;
+  if (updates.wantToUpgrade !== undefined) movie.wantToUpgrade = updates.wantToUpgrade;
+  if (updates.upgradeTarget !== undefined) movie.upgradeTarget = updates.upgradeTarget;
+
+  movie.dateModified = new Date().toISOString();
+
+  saveMovies(data);
+  return movie;
+}
+
+function remove(id) {
+  const data = loadMovies();
+  const index = data.movies.findIndex(m => m.id === id);
+
+  if (index === -1) {
+    return false;
+  }
+
+  data.movies.splice(index, 1);
+  saveMovies(data);
+  return true;
+}
+
+function bulkCreate(movies) {
+  const data = loadMovies();
+
+  const created = movies.map(movieData => ({
+    id: uuidv4(),
+    title: movieData.title,
+    format: normalizeFormat(movieData.format),
+    notes: movieData.notes || '',
+    wantToUpgrade: movieData.wantToUpgrade || false,
+    upgradeTarget: movieData.upgradeTarget || null,
+    dateAdded: new Date().toISOString(),
+    dateModified: new Date().toISOString(),
+    source: movieData.source || 'manual',
+    sourceFile: movieData.sourceFile || null
+  }));
+
+  data.movies.push(...created);
+  saveMovies(data);
+
+  return created;
+}
+
+function normalizeFormat(format) {
+  if (!format) return 'dvd';
+
+  const f = format.toLowerCase();
+
+  if (f.includes('4k')) return '4k';
+  if (f.includes('blu') && f.includes('4k')) return 'bluray_4k';
+  if (f.includes('blu')) return 'bluray';
+  if (f.includes('dvd') && f.includes('blu')) return 'mixed';
+  if (f.includes('dvd')) return 'dvd';
+
+  return 'dvd';
+}
+
+function getStats() {
+  const data = loadMovies();
+  const movies = data.movies;
+
+  return {
+    total: movies.length,
+    byFormat: {
+      dvd: movies.filter(m => m.format === 'dvd').length,
+      bluray: movies.filter(m => m.format === 'bluray').length,
+      '4k': movies.filter(m => m.format === '4k').length,
+      mixed: movies.filter(m => m.format === 'mixed').length
+    },
+    wantToUpgrade: movies.filter(m => m.wantToUpgrade).length
+  };
+}
+
+function clearCache() {
+  moviesCache = null;
+}
+
+module.exports = {
+  loadMovies,
+  getAll,
+  getById,
+  create,
+  update,
+  remove,
+  bulkCreate,
+  getStats,
+  clearCache,
+  normalizeFormat
+};

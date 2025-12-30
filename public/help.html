@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Help - Movie Collection</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <style>
+    .help-page {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .help-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .help-header h1 {
+      margin: 0;
+    }
+
+    .back-link {
+      color: var(--primary);
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+
+    .back-link:hover {
+      text-decoration: underline;
+    }
+
+    .help-section {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .help-section h2 {
+      margin-top: 0;
+      margin-bottom: 16px;
+      color: var(--primary);
+      font-size: 1.3rem;
+    }
+
+    .help-section h3 {
+      margin-top: 24px;
+      margin-bottom: 12px;
+      font-size: 1.1rem;
+    }
+
+    .help-section p {
+      color: var(--text-muted);
+      line-height: 1.7;
+      margin-bottom: 16px;
+    }
+
+    .help-section ul, .help-section ol {
+      color: var(--text-muted);
+      line-height: 1.7;
+      margin-bottom: 16px;
+      padding-left: 24px;
+    }
+
+    .help-section li {
+      margin-bottom: 8px;
+    }
+
+    .help-section code {
+      background: var(--bg-input);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-family: 'SF Mono', Monaco, monospace;
+      font-size: 0.9em;
+    }
+
+    .code-block {
+      background: var(--bg-input);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin: 16px 0;
+      overflow-x: auto;
+      font-family: 'SF Mono', Monaco, monospace;
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    .note {
+      background: rgba(74, 158, 255, 0.1);
+      border-left: 4px solid var(--primary);
+      padding: 12px 16px;
+      margin: 16px 0;
+      border-radius: 0 var(--radius) var(--radius) 0;
+    }
+
+    .note p {
+      margin: 0;
+      color: var(--text);
+    }
+
+    .warning {
+      background: rgba(243, 156, 18, 0.1);
+      border-left: 4px solid var(--upgrade);
+    }
+
+    .step-number {
+      display: inline-block;
+      width: 28px;
+      height: 28px;
+      background: var(--primary);
+      color: #fff;
+      border-radius: 50%;
+      text-align: center;
+      line-height: 28px;
+      font-weight: 600;
+      margin-right: 12px;
+    }
+
+    .step {
+      display: flex;
+      align-items: flex-start;
+      margin-bottom: 20px;
+    }
+
+    .step-content {
+      flex: 1;
+    }
+
+    .step-content h4 {
+      margin: 0 0 8px 0;
+    }
+
+    .step-content p {
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="help-page">
+    <header class="help-header">
+      <a href="/" class="back-link">&larr; Back to Collection</a>
+      <h1>Help</h1>
+    </header>
+
+    <section class="help-section">
+      <h2>Setting Up AI Image Recognition</h2>
+      <p>The photo import feature uses Claude's vision AI to automatically identify movies from photos of your disc cases. To enable this feature, you'll need an Anthropic API key.</p>
+
+      <h3>Getting an API Key</h3>
+      <div class="step">
+        <span class="step-number">1</span>
+        <div class="step-content">
+          <h4>Create an Anthropic Account</h4>
+          <p>Go to <a href="https://console.anthropic.com" target="_blank" style="color: var(--primary)">console.anthropic.com</a> and sign up for an account if you don't have one.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <span class="step-number">2</span>
+        <div class="step-content">
+          <h4>Generate an API Key</h4>
+          <p>Navigate to the API Keys section in your dashboard and create a new API key. Copy it somewhere safe - you won't be able to see it again.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <span class="step-number">3</span>
+        <div class="step-content">
+          <h4>Add Credits to Your Account</h4>
+          <p>Add billing information and credits to your account. The vision API costs approximately $0.01-0.03 per image analyzed.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <span class="step-number">4</span>
+        <div class="step-content">
+          <h4>Configure the App</h4>
+          <p>Create a <code>.env</code> file in the app's root folder (next to package.json) with your API key:</p>
+        </div>
+      </div>
+
+      <div class="code-block">ANTHROPIC_API_KEY=sk-ant-api03-your-key-here</div>
+
+      <div class="step">
+        <span class="step-number">5</span>
+        <div class="step-content">
+          <h4>Restart the Server</h4>
+          <p>Stop the server (Ctrl+C) and start it again with <code>npm start</code>. You should see "Photo import: ENABLED" in the console.</p>
+        </div>
+      </div>
+
+      <div class="note">
+        <p><strong>Note:</strong> Keep your API key secret! Don't share it or commit it to version control.</p>
+      </div>
+    </section>
+
+    <section class="help-section">
+      <h2>Adding Movies via Photo Import</h2>
+      <p>Once AI recognition is set up, you can add movies by photographing your disc cases.</p>
+
+      <h3>Taking Good Photos</h3>
+      <ul>
+        <li><strong>Capture the spines:</strong> The AI reads movie titles from the spine of cases, so make sure they're clearly visible.</li>
+        <li><strong>Good lighting:</strong> Avoid glare and shadows that obscure text.</li>
+        <li><strong>Steady shot:</strong> Blurry photos are harder to read.</li>
+        <li><strong>Multiple photos:</strong> For large collections, take several photos of different shelf sections.</li>
+      </ul>
+
+      <h3>Using the Import Feature</h3>
+      <ol>
+        <li>Click the <strong>"Import from Photo"</strong> button on the main page.</li>
+        <li>Drag and drop a photo onto the upload area, or click to select a file.</li>
+        <li>Wait while the AI analyzes the image (usually 5-15 seconds).</li>
+        <li>Review the detected movies:
+          <ul>
+            <li>Duplicates are automatically detected and unchecked.</li>
+            <li>Low confidence matches are highlighted - double-check these.</li>
+            <li>Uncheck any movies you don't want to add.</li>
+          </ul>
+        </li>
+        <li>Click <strong>"Add Selected Movies"</strong> to add them to your collection.</li>
+      </ol>
+
+      <div class="note warning">
+        <p><strong>Tip:</strong> The AI works best with clear, well-lit photos where movie spines are easily readable. If it misses some titles, try a closer photo of that section.</p>
+      </div>
+    </section>
+
+    <section class="help-section">
+      <h2>Automatic Folder Watching</h2>
+      <p>As an alternative to the upload button, you can drop photos directly into the <code>sources</code> folder. The app automatically watches this folder and will process any new images.</p>
+
+      <div class="code-block">movies/
+  sources/           &larr; Drop photos here
+    processed/       &larr; Photos moved here after import</div>
+
+      <p>When a new photo is detected:</p>
+      <ol>
+        <li>The AI analyzes it automatically</li>
+        <li>High-confidence matches (90%+) are added to your collection</li>
+        <li>The photo is moved to the <code>processed</code> folder</li>
+      </ol>
+
+      <div class="note">
+        <p><strong>Note:</strong> Folder watching adds movies automatically without review. Use the "Import from Photo" button if you want to review matches before adding.</p>
+      </div>
+    </section>
+
+    <section class="help-section">
+      <h2>Managing Your Collection</h2>
+
+      <h3>Marking Movies for Upgrade</h3>
+      <p>To track which DVDs you want to replace with Blu-ray or 4K:</p>
+      <ol>
+        <li>Click <strong>Edit</strong> on any movie</li>
+        <li>Check <strong>"Want to upgrade"</strong></li>
+        <li>Select your target format (Blu-ray or 4K)</li>
+        <li>Save the changes</li>
+      </ol>
+      <p>Use the <strong>"Wants Upgrade"</strong> filter to see all movies you want to upgrade.</p>
+
+      <h3>Searching and Filtering</h3>
+      <ul>
+        <li><strong>Search:</strong> Type in the search box to filter by title</li>
+        <li><strong>Format:</strong> Filter by DVD, Blu-ray, 4K, or Mixed</li>
+        <li><strong>Sort:</strong> Sort by title, format, or date added</li>
+        <li><strong>View:</strong> Switch between list and grid views</li>
+      </ul>
+    </section>
+
+    <section class="help-section">
+      <h2>Data Storage</h2>
+      <p>Your movie collection is stored in a JSON file:</p>
+      <div class="code-block">movies/data/movies.json</div>
+      <p>Automatic backups are created before each change in:</p>
+      <div class="code-block">movies/data/backups/</div>
+      <p>You can manually edit the JSON file if needed, but be sure to restart the server afterward.</p>
+    </section>
+  </div>
+</body>
+</html>
