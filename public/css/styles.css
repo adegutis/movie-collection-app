@@ -773,45 +773,97 @@ body {
     grid-template-columns: 1fr;
   }
 
-  /* Mobile list view - stack vertically instead of grid */
+  /* Mobile list view - compact single-line items that expand on tap */
   .movie-list.list-view .movie-card {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    grid-template-rows: auto auto;
     padding: 12px;
+    gap: 0;
+    cursor: pointer;
+    align-items: center;
+  }
+
+  .movie-list.list-view .movie-card .movie-header {
+    display: contents;
+  }
+
+  .movie-list.list-view .movie-card .movie-title {
+    font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    order: unset;
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  /* Format badge inline with title */
+  .movie-list.list-view .movie-card .movie-meta {
+    grid-column: 2;
+    grid-row: 1;
+    margin-left: 8px;
+    flex-shrink: 0;
+  }
+
+  .movie-list.list-view .movie-card .movie-meta .upgrade-badge {
+    display: none;
+  }
+
+  /* Hide actions and notes by default */
+  .movie-list.list-view .movie-card .movie-actions {
+    display: none;
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .movie-list.list-view .movie-card .movie-notes {
+    display: none;
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+
+  /* Expand indicator arrow */
+  .movie-list.list-view .movie-card::after {
+    content: '›';
+    font-size: 1.2rem;
+    color: var(--text-muted);
+    transition: transform 0.2s;
+    grid-column: 3;
+    grid-row: 1;
+    margin-left: 8px;
+  }
+
+  .movie-list.list-view .movie-card.expanded::after {
+    transform: rotate(90deg);
+  }
+
+  /* Expanded state - show all details */
+  .movie-list.list-view .movie-card.expanded {
+    cursor: default;
+    padding-bottom: 12px;
     gap: 8px;
   }
 
-  .movie-list.list-view .movie-header {
+  .movie-list.list-view .movie-card.expanded .movie-title {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+  }
+
+  .movie-list.list-view .movie-card.expanded .movie-actions {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-  }
-
-  .movie-list.list-view .movie-title {
-    font-size: 1rem;
-    white-space: normal;
-    overflow: visible;
-    text-overflow: unset;
-    order: unset;
-  }
-
-  .movie-list.list-view .movie-actions {
     opacity: 1;
-    order: unset;
-    justify-self: unset;
+    padding-top: 4px;
   }
 
-  .movie-list.list-view .movie-meta {
-    order: unset;
-    justify-self: unset;
+  .movie-list.list-view .movie-card.expanded .movie-meta .upgrade-badge {
+    display: inline-block;
   }
 
-  .movie-list.list-view .movie-notes {
-    order: unset;
+  .movie-list.list-view .movie-card.expanded .movie-notes {
+    display: block;
     white-space: normal;
-    overflow: visible;
-    text-overflow: unset;
   }
 
   /* Modal adjustments */

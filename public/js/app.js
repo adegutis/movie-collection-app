@@ -141,6 +141,26 @@ function setupEventListeners() {
   viewListBtn.addEventListener('click', () => setView('list'));
   viewGridBtn.addEventListener('click', () => setView('grid'));
 
+  // Mobile list view - tap to expand/collapse (event delegation)
+  movieList.addEventListener('click', (e) => {
+    // Only on mobile and in list view
+    if (window.innerWidth > 600 || currentView !== 'list') return;
+
+    // Don't toggle if clicking on buttons
+    if (e.target.tagName === 'BUTTON') return;
+
+    const card = e.target.closest('.movie-card');
+    if (card) {
+      // Collapse any other expanded cards
+      const expanded = movieList.querySelector('.movie-card.expanded');
+      if (expanded && expanded !== card) {
+        expanded.classList.remove('expanded');
+      }
+      // Toggle this card
+      card.classList.toggle('expanded');
+    }
+  });
+
   // Import modal
   importPhotoBtn.addEventListener('click', openImportModal);
   closeImportBtn.addEventListener('click', closeImportModal);
