@@ -9,6 +9,24 @@ const visionService = require('../services/visionService');
 const movieStore = require('../services/movieStore');
 const config = require('../config');
 
+// Security: Validate that a path is within an allowed directory
+function isPathWithinDirectory(filePath, directory) {
+  const resolvedPath = path.resolve(filePath);
+  const resolvedDir = path.resolve(directory);
+  return resolvedPath.startsWith(resolvedDir + path.sep) || resolvedPath === resolvedDir;
+}
+
+// Security: Sanitize filename to prevent path traversal
+function sanitizeFilename(filename) {
+  return path.basename(filename);
+}
+
+// Security: Validate file extension
+function hasAllowedExtension(filename, allowedExtensions) {
+  const ext = path.extname(filename).toLowerCase();
+  return allowedExtensions.includes(ext);
+}
+
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -37,7 +55,25 @@ const upload = multer({
 // POST /api/import/csv - Import movies from CSV file
 router.post('/csv', (req, res) => {
   try {
-    const csvPath = req.body.path || path.join(config.sourcesDir, 'Movie-List-Cabinet-Photos.csv');
+    let csvPath;
+
+    if (req.body.path) {
+      // Security: Only allow basename, resolve within sourcesDir
+      const sanitizedFilename = sanitizeFilename(req.body.path);
+      csvPath = path.join(config.sourcesDir, sanitizedFilename);
+
+      // Validate path is within allowed directory
+      if (!isPathWithinDirectory(csvPath, config.sourcesDir)) {
+        return res.status(400).json({ error: 'Invalid file path' });
+      }
+
+      // Validate file extension
+      if (!hasAllowedExtension(sanitizedFilename, ['.csv'])) {
+        return res.status(400).json({ error: 'Only CSV files are allowed' });
+      }
+    } else {
+      csvPath = path.join(config.sourcesDir, 'Movie-List-Cabinet-Photos.csv');
+    }
 
     const result = csvImporter.importFromCsv(csvPath);
 
@@ -47,7 +83,9 @@ router.post('/csv', (req, res) => {
       count: result.imported
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    const isProduction = process.env.NODE_ENV === 'production';
+    console.error('Error importing CSV:', error);
+    res.status(500).json({ error: isProduction ? 'Internal server error' : error.message });
   }
 });
 
@@ -91,10 +129,10 @@ router.post('/upload', upload.single('photo'), async (req, res) => {
     });
 
     // Keep the file for reference but move to processed after confirmation
+    // Security: Don't expose full server path
     res.json({
       success: true,
       fileName,
-      filePath: imagePath,
       movies: results,
       count: results.length
     });
@@ -103,7 +141,9 @@ router.post('/upload', upload.single('photo'), async (req, res) => {
     if (req.file && fs.existsSync(req.file.path)) {
       fs.unlinkSync(req.file.path);
     }
-    res.status(500).json({ error: error.message });
+    const isProduction = process.env.NODE_ENV === 'production';
+    console.error('Error processing upload:', error);
+    res.status(500).json({ error: isProduction ? 'Internal server error' : error.message });
   }
 });
 
@@ -120,25 +160,43 @@ router.post('/confirm', async (req, res) => {
     for (const movie of movies) {
       if (movie.skip) continue;
 
+      // Security: Validate movie data lengths
+      if (movie.title && movie.title.length > 500) {
+        return res.status(400).json({ error: 'Movie title exceeds maximum length' });
+      }
+      if (movie.notes && movie.notes.length > 2000) {
+        return res.status(400).json({ error: 'Movie notes exceed maximum length' });
+      }
+
       const created = movieStore.create({
         title: movie.title,
         format: movie.format,
         notes: movie.notes || '',
         source: 'photo_import',
-        sourceFile: fileName
+        sourceFile: fileName ? sanitizeFilename(fileName) : undefined
       });
       added.push(created);
     }
 
     // Move the source file to processed folder if it exists
     if (fileName) {
-      const sourcePath = path.join(config.sourcesDir, fileName);
-      if (fs.existsSync(sourcePath)) {
+      // Security: Sanitize filename to prevent path traversal
+      const sanitizedFileName = sanitizeFilename(fileName);
+      const sourcePath = path.join(config.sourcesDir, sanitizedFileName);
+
+      // Validate path is within allowed directory
+      if (!isPathWithinDirectory(sourcePath, config.sourcesDir)) {
+        console.warn('Attempted path traversal in fileName:', fileName);
+      } else if (fs.existsSync(sourcePath)) {
         const processedDir = path.join(config.sourcesDir, 'processed');
         if (!fs.existsSync(processedDir)) {
           fs.mkdirSync(processedDir, { recursive: true });
         }
-        fs.renameSync(sourcePath, path.join(processedDir, fileName));
+        const destPath = path.join(processedDir, sanitizedFileName);
+        // Double-check destination is safe
+        if (isPathWithinDirectory(destPath, processedDir)) {
+          fs.renameSync(sourcePath, destPath);
+        }
       }
     }
 
@@ -148,7 +206,9 @@ router.post('/confirm', async (req, res) => {
       movies: added
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    const isProduction = process.env.NODE_ENV === 'production';
+    console.error('Error confirming import:', error);
+    res.status(500).json({ error: isProduction ? 'Internal server error' : error.message });
   }
 });
 
@@ -161,7 +221,21 @@ router.post('/photo', async (req, res) => {
       return res.status(400).json({ error: 'Filename is required' });
     }
 
-    const imagePath = path.join(config.sourcesDir, filename);
+    // Security: Sanitize filename to prevent path traversal
+    const sanitizedFilename = sanitizeFilename(filename);
+
+    // Security: Validate file extension
+    const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+    if (!hasAllowedExtension(sanitizedFilename, allowedExtensions)) {
+      return res.status(400).json({ error: 'Invalid file type' });
+    }
+
+    const imagePath = path.join(config.sourcesDir, sanitizedFilename);
+
+    // Security: Verify path is within allowed directory
+    if (!isPathWithinDirectory(imagePath, config.sourcesDir)) {
+      return res.status(400).json({ error: 'Invalid file path' });
+    }
 
     if (!fs.existsSync(imagePath)) {
       return res.status(404).json({ error: 'Image file not found' });
@@ -174,7 +248,9 @@ router.post('/photo', async (req, res) => {
       ...result
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    const isProduction = process.env.NODE_ENV === 'production';
+    console.error('Error processing photo:', error);
+    res.status(500).json({ error: isProduction ? 'Internal server error' : error.message });
   }
 });
 
@@ -189,7 +265,9 @@ router.get('/pending', (req, res) => {
 
     res.json({ files });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    const isProduction = process.env.NODE_ENV === 'production';
+    console.error('Error listing pending files:', error);
+    res.status(500).json({ error: isProduction ? 'Internal server error' : error.message });
   }
 });
 

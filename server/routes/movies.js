@@ -2,6 +2,13 @@ const express = require('express');
 const router = express.Router();
 const movieStore = require('../services/movieStore');
 
+// Security: Helper for production-safe error responses
+function handleError(res, error, context) {
+  const isProduction = process.env.NODE_ENV === 'production';
+  console.error(`Error in ${context}:`, error);
+  res.status(500).json({ error: isProduction ? 'Internal server error' : error.message });
+}
+
 // GET /api/movies - List all movies with optional filters
 router.get('/', (req, res) => {
   try {
@@ -16,7 +23,7 @@ router.get('/', (req, res) => {
     const movies = movieStore.getAll(filters);
     res.json({ movies, count: movies.length });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    handleError(res, error, 'listing movies');
   }
 });
 
@@ -26,7 +33,7 @@ router.get('/stats', (req, res) => {
     const stats = movieStore.getStats();
     res.json(stats);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    handleError(res, error, 'getting stats');
   }
 });
 
@@ -39,7 +46,7 @@ router.get('/:id', (req, res) => {
     }
     res.json(movie);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    handleError(res, error, 'getting movie');
   }
 });
 
@@ -50,6 +57,14 @@ router.post('/', (req, res) => {
 
     if (!title || !title.trim()) {
       return res.status(400).json({ error: 'Title is required' });
+    }
+
+    // Security: Validate input lengths
+    if (title.length > 500) {
+      return res.status(400).json({ error: 'Title exceeds maximum length' });
+    }
+    if (notes && notes.length > 2000) {
+      return res.status(400).json({ error: 'Notes exceed maximum length' });
     }
 
     const movie = movieStore.create({
@@ -63,13 +78,21 @@ router.post('/', (req, res) => {
 
     res.status(201).json(movie);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    handleError(res, error, 'creating movie');
   }
 });
 
 // PUT /api/movies/:id - Update movie
 router.put('/:id', (req, res) => {
   try {
+    // Security: Validate input lengths
+    if (req.body.title && req.body.title.length > 500) {
+      return res.status(400).json({ error: 'Title exceeds maximum length' });
+    }
+    if (req.body.notes && req.body.notes.length > 2000) {
+      return res.status(400).json({ error: 'Notes exceed maximum length' });
+    }
+
     const movie = movieStore.update(req.params.id, req.body);
 
     if (!movie) {
@@ -78,7 +101,7 @@ router.put('/:id', (req, res) => {
 
     res.json(movie);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    handleError(res, error, 'updating movie');
   }
 });
 
@@ -93,7 +116,7 @@ router.delete('/:id', (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    handleError(res, error, 'deleting movie');
   }
 });
 
