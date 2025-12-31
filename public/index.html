@@ -93,6 +93,21 @@
             <input type="text" id="notes" placeholder="Edition, season, etc.">
           </div>
 
+          <div class="form-group">
+            <label for="genre">Genre</label>
+            <input type="text" id="genre" placeholder="e.g., Action, Comedy, Drama">
+          </div>
+
+          <div class="form-group">
+            <label for="release-date">Release Date</label>
+            <input type="text" id="release-date" placeholder="e.g., 1994 or 1999, 2002, 2007">
+          </div>
+
+          <div class="form-group">
+            <label for="actors">Top Billed Actors</label>
+            <input type="text" id="actors" placeholder="e.g., Tom Hanks, Robin Wright">
+          </div>
+
           <div class="form-group upgrade-group">
             <label>
               <input type="checkbox" id="want-upgrade">
@@ -109,6 +124,46 @@
             <button type="submit" class="btn btn-primary">Save</button>
           </div>
         </form>
+      </div>
+    </div>
+
+    <!-- Movie Details Modal -->
+    <div class="modal" id="details-modal">
+      <div class="modal-content modal-details">
+        <div class="modal-header">
+          <h2 id="details-title">Movie Details</h2>
+          <button class="close-btn" id="close-details">&times;</button>
+        </div>
+        <div class="details-body">
+          <div class="detail-row">
+            <span class="detail-label">Format</span>
+            <span class="detail-value" id="details-format"></span>
+          </div>
+          <div class="detail-row" id="details-genre-row">
+            <span class="detail-label">Genre</span>
+            <span class="detail-value" id="details-genre"></span>
+          </div>
+          <div class="detail-row" id="details-release-row">
+            <span class="detail-label">Release Date</span>
+            <span class="detail-value" id="details-release"></span>
+          </div>
+          <div class="detail-row" id="details-actors-row">
+            <span class="detail-label">Actors</span>
+            <span class="detail-value" id="details-actors"></span>
+          </div>
+          <div class="detail-row" id="details-notes-row">
+            <span class="detail-label">Notes</span>
+            <span class="detail-value" id="details-notes"></span>
+          </div>
+          <div class="detail-row" id="details-upgrade-row">
+            <span class="detail-label">Upgrade</span>
+            <span class="detail-value" id="details-upgrade"></span>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn" id="details-edit-btn">Edit</button>
+          <button class="btn btn-danger" id="details-delete-btn">Delete</button>
+        </div>
       </div>
     </div>
 

@@ -205,13 +205,14 @@ body {
 
 .movie-list.list-view .movie-card {
   display: grid;
-  grid-template-columns: minmax(150px, 350px) 100px 220px minmax(100px, 300px);
+  grid-template-columns: 1fr auto auto;
   align-items: center;
   padding: 12px 16px;
   gap: 16px;
   border-radius: 0;
   background: var(--bg-card);
   border-bottom: 1px solid var(--border);
+  cursor: pointer;
 }
 
 .movie-list.list-view .movie-card:first-child {
@@ -241,25 +242,14 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  order: 1;
-}
-
-.movie-list.list-view .movie-actions {
-  opacity: 0.7;
-  order: 2;
-  justify-self: end;
 }
 
 .movie-list.list-view .movie-meta {
-  order: 3;
-  justify-self: start;
+  justify-self: end;
 }
 
 .movie-list.list-view .movie-notes {
-  order: 4;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  display: none;
 }
 
 .movie-card {
@@ -270,10 +260,12 @@ body {
   flex-direction: column;
   gap: 10px;
   transition: transform 0.2s;
+  cursor: pointer;
 }
 
 .movie-card:hover {
   transform: translateY(-2px);
+  background: var(--bg-input);
 }
 
 .movie-header {
@@ -289,37 +281,6 @@ body {
   flex: 1;
 }
 
-.movie-actions {
-  display: flex;
-  gap: 8px;
-  opacity: 0.5;
-  transition: opacity 0.2s;
-}
-
-.movie-card:hover .movie-actions {
-  opacity: 1;
-}
-
-.movie-actions button {
-  padding: 4px 8px;
-  font-size: 0.8rem;
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-muted);
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.movie-actions button:hover {
-  background: var(--border);
-  color: var(--text);
-}
-
-.movie-actions button.delete:hover {
-  background: var(--danger);
-  border-color: var(--danger);
-  color: #fff;
-}
 
 .movie-meta {
   display: flex;
@@ -384,6 +345,42 @@ body {
   max-width: 400px;
   padding: 24px;
   text-align: center;
+}
+
+.modal-details {
+  max-width: 450px;
+}
+
+.details-body {
+  padding: 20px;
+}
+
+.detail-row {
+  display: flex;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.detail-row:last-child {
+  border-bottom: none;
+}
+
+.detail-label {
+  width: 100px;
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.detail-value {
+  flex: 1;
+  color: var(--text);
+}
+
+.modal-details .form-actions {
+  padding: 0 20px 20px;
 }
 
 .modal-small h3 {
@@ -773,97 +770,25 @@ body {
     grid-template-columns: 1fr;
   }
 
-  /* Mobile list view - compact single-line items that expand on tap */
+  /* Mobile list view - simple clickable items */
   .movie-list.list-view .movie-card {
-    display: grid;
-    grid-template-columns: 1fr auto auto;
-    grid-template-rows: auto auto;
-    padding: 12px;
-    gap: 0;
-    cursor: pointer;
+    display: flex;
+    flex-direction: row;
     align-items: center;
-  }
-
-  .movie-list.list-view .movie-card .movie-header {
-    display: contents;
+    padding: 12px;
+    gap: 12px;
   }
 
   .movie-list.list-view .movie-card .movie-title {
     font-size: 0.95rem;
+    flex: 1;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    order: unset;
-    grid-column: 1;
-    grid-row: 1;
   }
 
-  /* Format badge inline with title */
   .movie-list.list-view .movie-card .movie-meta {
-    grid-column: 2;
-    grid-row: 1;
-    margin-left: 8px;
     flex-shrink: 0;
-  }
-
-  .movie-list.list-view .movie-card .movie-meta .upgrade-badge {
-    display: none;
-  }
-
-  /* Hide actions and notes by default */
-  .movie-list.list-view .movie-card .movie-actions {
-    display: none;
-    grid-column: 1 / -1;
-    grid-row: 2;
-  }
-
-  .movie-list.list-view .movie-card .movie-notes {
-    display: none;
-    grid-column: 1 / -1;
-    grid-row: 3;
-  }
-
-  /* Expand indicator arrow */
-  .movie-list.list-view .movie-card::after {
-    content: '›';
-    font-size: 1.2rem;
-    color: var(--text-muted);
-    transition: transform 0.2s;
-    grid-column: 3;
-    grid-row: 1;
-    margin-left: 8px;
-  }
-
-  .movie-list.list-view .movie-card.expanded::after {
-    transform: rotate(90deg);
-  }
-
-  /* Expanded state - show all details */
-  .movie-list.list-view .movie-card.expanded {
-    cursor: default;
-    padding-bottom: 12px;
-    gap: 8px;
-  }
-
-  .movie-list.list-view .movie-card.expanded .movie-title {
-    white-space: normal;
-    overflow: visible;
-    text-overflow: unset;
-  }
-
-  .movie-list.list-view .movie-card.expanded .movie-actions {
-    display: flex;
-    opacity: 1;
-    padding-top: 4px;
-  }
-
-  .movie-list.list-view .movie-card.expanded .movie-meta .upgrade-badge {
-    display: inline-block;
-  }
-
-  .movie-list.list-view .movie-card.expanded .movie-notes {
-    display: block;
-    white-space: normal;
   }
 
   /* Modal adjustments */

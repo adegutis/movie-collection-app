@@ -120,6 +120,9 @@ function create(movieData) {
     notes: movieData.notes || '',
     wantToUpgrade: movieData.wantToUpgrade || false,
     upgradeTarget: movieData.upgradeTarget || null,
+    genre: movieData.genre || '',
+    releaseDate: movieData.releaseDate || '',
+    actors: movieData.actors || '',
     dateAdded: new Date().toISOString(),
     dateModified: new Date().toISOString(),
     source: movieData.source || 'manual',
@@ -147,6 +150,9 @@ function update(id, updates) {
   if (updates.notes !== undefined) movie.notes = updates.notes;
   if (updates.wantToUpgrade !== undefined) movie.wantToUpgrade = updates.wantToUpgrade;
   if (updates.upgradeTarget !== undefined) movie.upgradeTarget = updates.upgradeTarget;
+  if (updates.genre !== undefined) movie.genre = updates.genre;
+  if (updates.releaseDate !== undefined) movie.releaseDate = updates.releaseDate;
+  if (updates.actors !== undefined) movie.actors = updates.actors;
 
   movie.dateModified = new Date().toISOString();
 
@@ -177,6 +183,9 @@ function bulkCreate(movies) {
     notes: movieData.notes || '',
     wantToUpgrade: movieData.wantToUpgrade || false,
     upgradeTarget: movieData.upgradeTarget || null,
+    genre: movieData.genre || '',
+    releaseDate: movieData.releaseDate || '',
+    actors: movieData.actors || '',
     dateAdded: new Date().toISOString(),
     dateModified: new Date().toISOString(),
     source: movieData.source || 'manual',

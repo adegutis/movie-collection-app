@@ -21,6 +21,24 @@ const cancelDelete = document.getElementById('cancel-delete');
 const confirmDelete = document.getElementById('confirm-delete');
 const deleteMovieTitle = document.getElementById('delete-movie-title');
 
+// Details modal elements
+const detailsModal = document.getElementById('details-modal');
+const closeDetailsBtn = document.getElementById('close-details');
+const detailsTitle = document.getElementById('details-title');
+const detailsFormat = document.getElementById('details-format');
+const detailsGenre = document.getElementById('details-genre');
+const detailsGenreRow = document.getElementById('details-genre-row');
+const detailsRelease = document.getElementById('details-release');
+const detailsReleaseRow = document.getElementById('details-release-row');
+const detailsActors = document.getElementById('details-actors');
+const detailsActorsRow = document.getElementById('details-actors-row');
+const detailsNotes = document.getElementById('details-notes');
+const detailsNotesRow = document.getElementById('details-notes-row');
+const detailsUpgrade = document.getElementById('details-upgrade');
+const detailsUpgradeRow = document.getElementById('details-upgrade-row');
+const detailsEditBtn = document.getElementById('details-edit-btn');
+const detailsDeleteBtn = document.getElementById('details-delete-btn');
+
 // Import modal elements
 const importModal = document.getElementById('import-modal');
 const closeImportBtn = document.getElementById('close-import');
@@ -43,6 +61,9 @@ const movieIdInput = document.getElementById('movie-id');
 const titleInput = document.getElementById('title');
 const formatInput = document.getElementById('format');
 const notesInput = document.getElementById('notes');
+const genreInput = document.getElementById('genre');
+const releaseDateInput = document.getElementById('release-date');
+const actorsInput = document.getElementById('actors');
 const wantUpgradeInput = document.getElementById('want-upgrade');
 const upgradeTargetInput = document.getElementById('upgrade-target');
 
@@ -58,6 +79,7 @@ let deleteMovieId = null;
 let debounceTimer = null;
 let importResults = null;
 let importFileName = null;
+let currentDetailsMovie = null;
 
 // Format display names
 const formatNames = {
@@ -141,23 +163,34 @@ function setupEventListeners() {
   viewListBtn.addEventListener('click', () => setView('list'));
   viewGridBtn.addEventListener('click', () => setView('grid'));
 
-  // Mobile list view - tap to expand/collapse (event delegation)
-  movieList.addEventListener('click', (e) => {
-    // Only on mobile and in list view
-    if (window.innerWidth > 600 || currentView !== 'list') return;
+  // Details modal
+  closeDetailsBtn.addEventListener('click', closeDetailsModal);
+  detailsModal.addEventListener('click', (e) => {
+    if (e.target === detailsModal) closeDetailsModal();
+  });
 
-    // Don't toggle if clicking on buttons
-    if (e.target.tagName === 'BUTTON') return;
-
-    const card = e.target.closest('.movie-card');
-    if (card) {
-      // Collapse any other expanded cards
-      const expanded = movieList.querySelector('.movie-card.expanded');
-      if (expanded && expanded !== card) {
-        expanded.classList.remove('expanded');
+  // Close modals with Escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      if (detailsModal.classList.contains('active')) closeDetailsModal();
+      if (movieModal.classList.contains('active')) closeModal();
+      if (deleteModal.classList.contains('active')) {
+        deleteModal.classList.remove('active');
+        deleteMovieId = null;
       }
-      // Toggle this card
-      card.classList.toggle('expanded');
+      if (importModal.classList.contains('active')) closeImportModal();
+    }
+  });
+  detailsEditBtn.addEventListener('click', () => {
+    closeDetailsModal();
+    if (currentDetailsMovie) {
+      openModal(currentDetailsMovie);
+    }
+  });
+  detailsDeleteBtn.addEventListener('click', () => {
+    if (currentDetailsMovie) {
+      closeDetailsModal();
+      confirmDeleteMovie(currentDetailsMovie.id, currentDetailsMovie.title);
     }
   });
 
@@ -250,17 +283,13 @@ function renderMovies(movies) {
   }
 
   movieList.innerHTML = movies.map(movie => `
-    <div class="movie-card" data-id="${movie.id}">
+    <div class="movie-card" data-id="${movie.id}" onclick="showMovieDetails('${movie.id}')">
       <div class="movie-header">
         <span class="movie-title">${escapeHtml(movie.title)}</span>
-        <div class="movie-actions">
-          <button onclick="editMovie('${movie.id}')">Edit</button>
-          <button class="delete" onclick="confirmDeleteMovie('${movie.id}', '${escapeHtml(movie.title).replace(/'/g, "\\'")}')">Delete</button>
-        </div>
       </div>
       <div class="movie-meta">
         <span class="format-badge format-${movie.format}">${formatNames[movie.format] || movie.format}</span>
-        ${movie.wantToUpgrade ? `<span class="upgrade-badge">Upgrade to ${formatNames[movie.upgradeTarget] || 'Blu-ray'}</span>` : ''}
+        ${movie.wantToUpgrade ? `<span class="upgrade-badge">Upgrade</span>` : ''}
       </div>
       ${movie.notes ? `<div class="movie-notes">${escapeHtml(movie.notes)}</div>` : ''}
     </div>
@@ -274,6 +303,9 @@ function openModal(movie = null) {
     titleInput.value = movie.title;
     formatInput.value = movie.format;
     notesInput.value = movie.notes || '';
+    genreInput.value = movie.genre || '';
+    releaseDateInput.value = movie.releaseDate || '';
+    actorsInput.value = movie.actors || '';
     wantUpgradeInput.checked = movie.wantToUpgrade;
     upgradeTargetInput.value = movie.upgradeTarget || 'bluray';
     upgradeTargetInput.disabled = !movie.wantToUpgrade;
@@ -300,6 +332,9 @@ async function handleFormSubmit(e) {
     title: titleInput.value.trim(),
     format: formatInput.value,
     notes: notesInput.value.trim(),
+    genre: genreInput.value.trim(),
+    releaseDate: releaseDateInput.value.trim(),
+    actors: actorsInput.value.trim(),
     wantToUpgrade: wantUpgradeInput.checked,
     upgradeTarget: wantUpgradeInput.checked ? upgradeTargetInput.value : null
   };
@@ -355,6 +390,63 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+// Details modal functions
+async function showMovieDetails(id) {
+  try {
+    const res = await fetch(`/api/movies/${id}`);
+    const movie = await res.json();
+    currentDetailsMovie = movie;
+
+    detailsTitle.textContent = movie.title;
+    detailsFormat.innerHTML = `<span class="format-badge format-${movie.format}">${formatNames[movie.format] || movie.format}</span>`;
+
+    // Show/hide rows based on data
+    if (movie.genre) {
+      detailsGenre.textContent = movie.genre;
+      detailsGenreRow.style.display = 'flex';
+    } else {
+      detailsGenreRow.style.display = 'none';
+    }
+
+    if (movie.releaseDate) {
+      detailsRelease.textContent = movie.releaseDate;
+      detailsReleaseRow.style.display = 'flex';
+    } else {
+      detailsReleaseRow.style.display = 'none';
+    }
+
+    if (movie.actors) {
+      detailsActors.textContent = movie.actors;
+      detailsActorsRow.style.display = 'flex';
+    } else {
+      detailsActorsRow.style.display = 'none';
+    }
+
+    if (movie.notes) {
+      detailsNotes.textContent = movie.notes;
+      detailsNotesRow.style.display = 'flex';
+    } else {
+      detailsNotesRow.style.display = 'none';
+    }
+
+    if (movie.wantToUpgrade) {
+      detailsUpgrade.textContent = `To ${formatNames[movie.upgradeTarget] || 'Blu-ray'}`;
+      detailsUpgradeRow.style.display = 'flex';
+    } else {
+      detailsUpgradeRow.style.display = 'none';
+    }
+
+    detailsModal.classList.add('active');
+  } catch (error) {
+    console.error('Failed to load movie details:', error);
+  }
+}
+
+function closeDetailsModal() {
+  detailsModal.classList.remove('active');
+  currentDetailsMovie = null;
 }
 
 // Import functions
