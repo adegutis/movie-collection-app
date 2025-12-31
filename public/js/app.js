@@ -127,6 +127,15 @@ function setupEventListeners() {
   // Add movie button
   addMovieBtn.addEventListener('click', () => openModal());
 
+  // Movie card clicks (event delegation)
+  movieList.addEventListener('click', (e) => {
+    const card = e.target.closest('.movie-card');
+    if (card) {
+      const movieId = card.dataset.id;
+      if (movieId) showMovieDetails(movieId);
+    }
+  });
+
   // Modal controls
   closeModalBtn.addEventListener('click', () => closeModal());
   cancelBtn.addEventListener('click', () => closeModal());
@@ -283,7 +292,7 @@ function renderMovies(movies) {
   }
 
   movieList.innerHTML = movies.map(movie => `
-    <div class="movie-card" data-id="${movie.id}" onclick="showMovieDetails('${movie.id}')">
+    <div class="movie-card" data-id="${movie.id}">
       <div class="movie-header">
         <span class="movie-title">${escapeHtml(movie.title)}</span>
       </div>

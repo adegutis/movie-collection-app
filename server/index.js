@@ -21,21 +21,25 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 // Security: Add security headers with helmet
 app.use(helmet({
-  contentSecurityPolicy: {
+  contentSecurityPolicy: isProduction ? {
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", "data:"],
+      imgSrc: ["'self'", "data:", "blob:"],
       connectSrc: ["'self'"],
+      fontSrc: ["'self'"],
       frameSrc: ["'none'"],
-      objectSrc: ["'none'"]
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"]
     }
-  },
+  } : false, // Disable CSP in development to avoid issues
   hsts: isProduction ? {
     maxAge: 31536000,
     includeSubDomains: true
-  } : false
+  } : false,
+  crossOriginEmbedderPolicy: false // Can cause issues with some resources
 }));
 
 // Security: Configure CORS properly
