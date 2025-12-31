@@ -185,6 +185,11 @@ body {
   background: #c0392b;
 }
 
+.action-buttons {
+  display: flex;
+  gap: 12px;
+}
+
 /* Grid view (default for grid mode) */
 .movie-list {
   display: grid;
@@ -689,22 +694,159 @@ body {
 
 /* Responsive */
 @media (max-width: 600px) {
+  .app {
+    padding: 12px;
+  }
+
   .header {
     flex-direction: column;
     align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .header h1 {
+    font-size: 1.5rem;
+  }
+
+  .stats {
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    font-size: 0.8rem;
   }
 
   .controls {
-    flex-direction: column;
-    align-items: stretch;
+    padding: 12px;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .search-box {
+    min-width: 100%;
   }
 
   .filters {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .filter-group {
     flex-direction: column;
     align-items: flex-start;
+    gap: 4px;
+    font-size: 0.85rem;
+  }
+
+  .filter-group select {
+    width: 100%;
+    padding: 10px 12px;
+  }
+
+  /* Wants Upgrade checkbox - row layout */
+  .filter-group.checkbox-group {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* View toggle next to checkbox */
+  .view-toggle {
+    justify-self: end;
+  }
+
+  /* Action buttons row - side by side on mobile */
+  .action-buttons {
+    width: 100%;
+    gap: 8px;
+  }
+
+  .action-buttons .btn {
+    flex: 1;
+    text-align: center;
+    padding: 12px 8px;
+    font-size: 0.9rem;
   }
 
   .movie-list {
     grid-template-columns: 1fr;
+  }
+
+  /* Mobile list view - stack vertically instead of grid */
+  .movie-list.list-view .movie-card {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 12px;
+    gap: 8px;
+  }
+
+  .movie-list.list-view .movie-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .movie-list.list-view .movie-title {
+    font-size: 1rem;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+    order: unset;
+  }
+
+  .movie-list.list-view .movie-actions {
+    opacity: 1;
+    order: unset;
+    justify-self: unset;
+  }
+
+  .movie-list.list-view .movie-meta {
+    order: unset;
+    justify-self: unset;
+  }
+
+  .movie-list.list-view .movie-notes {
+    order: unset;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+  }
+
+  /* Modal adjustments */
+  .modal-content {
+    width: 95%;
+    max-height: 85vh;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .form-actions .btn {
+    width: 100%;
+  }
+
+  /* Import modal */
+  .upload-area {
+    padding: 32px 16px;
+  }
+
+  .upload-icon {
+    font-size: 2.5rem;
+  }
+
+  .result-edit {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .result-edit input {
+    width: 100%;
+  }
+
+  .result-item {
+    flex-wrap: wrap;
   }
 }

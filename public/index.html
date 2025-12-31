@@ -34,11 +34,6 @@
         </label>
 
         <label class="filter-group">
-          <input type="checkbox" id="upgrade-filter">
-          <span>Wants Upgrade</span>
-        </label>
-
-        <label class="filter-group">
           <span>Sort:</span>
           <select id="sort-by">
             <option value="title">Title</option>
@@ -47,14 +42,21 @@
           </select>
         </label>
 
+        <label class="filter-group checkbox-group">
+          <input type="checkbox" id="upgrade-filter">
+          <span>Wants Upgrade</span>
+        </label>
+
         <div class="view-toggle">
           <button class="view-btn active" id="view-list" title="List view">☰</button>
           <button class="view-btn" id="view-grid" title="Grid view">▦</button>
         </div>
       </div>
 
-      <button class="btn" id="import-photo-btn">Import from Photo</button>
-      <button class="btn btn-primary" id="add-movie-btn">+ Add Movie</button>
+      <div class="action-buttons">
+        <button class="btn" id="import-photo-btn">Import from Photo</button>
+        <button class="btn btn-primary" id="add-movie-btn">+ Add Movie</button>
+      </div>
     </div>
 
     <main class="movie-list" id="movie-list">
