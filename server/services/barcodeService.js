@@ -190,9 +190,19 @@ async function lookupMovieByBarcode(imagePath) {
   // Step 3: Extract movie title and search TMDb
   let movieTitle = productInfo.title;
 
-  // Try to clean up the title (remove "DVD", "Blu-ray", edition info, etc.)
+  // Clean up the title for better TMDb matching
   movieTitle = movieTitle
-    .replace(/\b(DVD|Blu-ray|4K|Ultra HD|Special Edition|Collector's Edition)\b/gi, '')
+    // Remove parenthetical content (includes digital copy info, etc.)
+    .replace(/\([^)]*\)/g, '')
+    .replace(/\[[^\]]*\]/g, '')
+    // Remove common disc/packaging terms
+    .replace(/\b(DVD|Blu-ray|BluRay|4K|Ultra HD|UHD|Digital Copy|Digital HD|HDX)\b/gi, '')
+    // Remove edition info
+    .replace(/\b(Special Edition|Collector's Edition|Director's Cut|Extended Edition|Limited Edition|Anniversary Edition|Criterion Collection)\b/gi, '')
+    // Remove publisher names
+    .replace(/\b(Sony Pictures|Warner Bros|Universal|Paramount|Disney|Fox|MGM|Lionsgate)\b/gi, '')
+    // Remove extra symbols and whitespace
+    .replace(/[+\-:]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 
