@@ -58,10 +58,21 @@ For each visible movie, identify:
    - "Blu-ray" or "Blu-ray Disc" logo (blue)
    - "4K Ultra HD" logo (black/gold)
 3. Notes - Any edition info visible (Special Edition, Collector's Edition, season numbers, etc.)
+4. Genre - The genre of the movie (Action, Comedy, Drama, Horror, Sci-Fi, etc.) based on your knowledge
+5. Release Date - The theatrical release year (e.g., "1994", "2010") based on your knowledge
+6. Actors - Top billed actors (e.g., "Tom Hanks, Robin Wright") based on your knowledge
 
 Return ONLY a valid JSON array, no other text or explanation:
 [
-  {"title": "Movie Title", "format": "DVD", "notes": "edition info or empty string", "confidence": 0.95}
+  {
+    "title": "Movie Title",
+    "format": "DVD",
+    "notes": "edition info or empty string",
+    "genre": "Genre",
+    "releaseDate": "Year",
+    "actors": "Actor 1, Actor 2",
+    "confidence": 0.95
+  }
 ]
 
 Format values must be exactly one of: "DVD", "Blu-ray", "4K Ultra HD"
@@ -93,6 +104,9 @@ If no movies are visible or the image doesn't show movie cases, return: []`
       title: m.title || '',
       format: m.format || 'DVD',
       notes: m.notes || '',
+      genre: m.genre || '',
+      releaseDate: m.releaseDate || '',
+      actors: m.actors || '',
       confidence: m.confidence || 0.5
     }));
   } catch (error) {
