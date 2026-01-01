@@ -42,6 +42,13 @@ async function getAzureSecrets() {
       // APP-PASSWORD is optional
     }
 
+    try {
+      const tmdbKeySecret = await client.getSecret('TMDB-API-KEY');
+      secrets.tmdbApiKey = tmdbKeySecret.value;
+    } catch (e) {
+      // TMDB-API-KEY is optional
+    }
+
     azureSecrets = secrets;
     console.log('Loaded secrets from Azure Key Vault');
     return azureSecrets;
@@ -62,7 +69,8 @@ const config = {
   maxBackups: 10,
   // Default to env vars, will be overwritten by Azure Key Vault if available
   anthropicApiKey: process.env.ANTHROPIC_API_KEY,
-  appPassword: process.env.APP_PASSWORD
+  appPassword: process.env.APP_PASSWORD,
+  tmdbApiKey: process.env.TMDB_API_KEY
 };
 
 // Initialize config with Azure Key Vault secrets (call at app startup)
@@ -75,6 +83,9 @@ async function initializeConfig() {
   }
   if (secrets.appPassword) {
     config.appPassword = secrets.appPassword;
+  }
+  if (secrets.tmdbApiKey) {
+    config.tmdbApiKey = secrets.tmdbApiKey;
   }
 
   return config;
