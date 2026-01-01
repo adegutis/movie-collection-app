@@ -203,8 +203,9 @@ function setupEventListeners() {
   });
   detailsDeleteBtn.addEventListener('click', () => {
     if (currentDetailsMovie) {
+      const movieToDelete = currentDetailsMovie;
       closeDetailsModal();
-      confirmDeleteMovie(currentDetailsMovie.id, currentDetailsMovie.title);
+      confirmDeleteMovie(movieToDelete.id, movieToDelete.title);
     }
   });
 
