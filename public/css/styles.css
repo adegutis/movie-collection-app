@@ -64,6 +64,9 @@ body {
 }
 
 .controls {
+  position: sticky;
+  top: 0;
+  z-index: 10;
   display: flex;
   flex-wrap: wrap;
   gap: 16px;
@@ -72,6 +75,7 @@ body {
   padding: 16px;
   background: var(--bg-card);
   border-radius: var(--radius);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 .search-box {
