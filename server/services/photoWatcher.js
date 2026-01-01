@@ -76,6 +76,9 @@ async function processPhoto(filePath) {
             title: movie.title,
             format: movie.format,
             notes: movie.notes,
+            genre: movie.genre || '',
+            releaseDate: movie.releaseDate || '',
+            actors: movie.actors || '',
             source: 'photo_import',
             sourceFile: fileName
           });
@@ -87,6 +90,9 @@ async function processPhoto(filePath) {
             title: movie.title,
             format: movie.format,
             notes: `${movie.notes} [Confidence: ${Math.round(movie.confidence * 100)}%]`.trim(),
+            genre: movie.genre || '',
+            releaseDate: movie.releaseDate || '',
+            actors: movie.actors || '',
             source: 'photo_import',
             sourceFile: fileName
           });
