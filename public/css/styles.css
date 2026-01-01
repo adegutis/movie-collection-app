@@ -295,11 +295,13 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   grid-column: 1;
+  grid-row: 1;
 }
 
 .movie-list.list-view .movie-meta {
   justify-self: end;
   grid-column: 3;
+  grid-row: 1;
 }
 
 .movie-list.list-view .movie-notes {
@@ -309,6 +311,7 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
   grid-column: 2;
+  grid-row: 1;
 }
 
 .movie-card {
