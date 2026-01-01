@@ -9,6 +9,10 @@ const addMovieBtn = document.getElementById('add-movie-btn');
 const viewListBtn = document.getElementById('view-list');
 const viewGridBtn = document.getElementById('view-grid');
 const importPhotoBtn = document.getElementById('import-photo-btn');
+const exportBtn = document.getElementById('export-btn');
+const exportMenu = document.getElementById('export-menu');
+const exportJsonBtn = document.getElementById('export-json');
+const exportCsvBtn = document.getElementById('export-csv');
 
 // Modal elements
 const movieModal = document.getElementById('movie-modal');
@@ -237,6 +241,28 @@ function setupEventListeners() {
   importAnother.addEventListener('click', resetImportModal);
   importConfirm.addEventListener('click', confirmImport);
   errorClose.addEventListener('click', closeImportModal);
+
+  // Export dropdown
+  exportBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    exportMenu.classList.toggle('active');
+  });
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', () => {
+    exportMenu.classList.remove('active');
+  });
+
+  // Export actions
+  exportJsonBtn.addEventListener('click', () => {
+    exportMenu.classList.remove('active');
+    downloadJSON();
+  });
+
+  exportCsvBtn.addEventListener('click', () => {
+    exportMenu.classList.remove('active');
+    downloadCSV();
+  });
 }
 
 function setView(view) {
@@ -629,4 +655,45 @@ function normalizeFormat(format) {
   if (f.includes('4k')) return '4k';
   if (f.includes('blu')) return 'bluray';
   return 'dvd';
+}
+
+// Export functions
+async function downloadJSON() {
+  try {
+    const res = await fetch('/api/movies/export?format=json');
+    const data = await res.json();
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `movie-collection-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Failed to download JSON:', error);
+    alert('Failed to download JSON. Please try again.');
+  }
+}
+
+async function downloadCSV() {
+  try {
+    const res = await fetch('/api/movies/export?format=csv');
+    const csv = await res.text();
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `movie-collection-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Failed to download CSV:', error);
+    alert('Failed to download CSV. Please try again.');
+  }
 }
