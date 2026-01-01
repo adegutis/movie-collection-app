@@ -6,6 +6,7 @@ const multer = require('multer');
 const csvImporter = require('../services/csvImporter');
 const photoWatcher = require('../services/photoWatcher');
 const visionService = require('../services/visionService');
+const barcodeService = require('../services/barcodeService');
 const movieStore = require('../services/movieStore');
 const config = require('../config');
 
@@ -304,5 +305,65 @@ function normalizeTitle(title) {
     .replace(/\s+/g, ' ')
     .trim();
 }
+
+// POST /api/import/barcode - Upload and analyze a barcode photo
+router.post('/barcode', upload.single('photo'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No photo uploaded' });
+    }
+
+    if (!barcodeService.isConfigured()) {
+      // Clean up uploaded file
+      fs.unlinkSync(req.file.path);
+      return res.status(400).json({
+        error: 'AI vision not configured. Please set ANTHROPIC_API_KEY in your .env file.',
+        needsSetup: true
+      });
+    }
+
+    const imagePath = req.file.path;
+    const fileName = req.file.filename;
+
+    // Analyze the barcode and lookup movie
+    const result = await barcodeService.lookupMovieByBarcode(imagePath);
+
+    // Clean up the uploaded file
+    if (fs.existsSync(imagePath)) {
+      fs.unlinkSync(imagePath);
+    }
+
+    if (!result.success) {
+      return res.status(400).json({
+        error: result.error,
+        barcode: result.barcode
+      });
+    }
+
+    // Check for duplicates
+    const existingMovies = movieStore.getAll();
+    const duplicate = findDuplicate(result.movie.title, existingMovies);
+
+    res.json({
+      success: true,
+      barcode: result.barcode,
+      barcodeType: result.barcodeType,
+      productInfo: result.productInfo,
+      movie: {
+        ...result.movie,
+        isDuplicate: !!duplicate,
+        existingTitle: duplicate ? duplicate.title : null
+      }
+    });
+  } catch (error) {
+    // Clean up uploaded file on error
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    const isProduction = process.env.NODE_ENV === 'production';
+    console.error('Error processing barcode:', error);
+    res.status(500).json({ error: isProduction ? 'Internal server error' : error.message });
+  }
+});
 
 module.exports = router;

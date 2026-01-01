@@ -42,39 +42,58 @@ async function getAzureSecrets() {
       // APP-PASSWORD is optional
     }
 
+    try {
+      const tmdbKeySecret = await client.getSecret('TMDB-API-KEY');
+      secrets.tmdbApiKey = tmdbKeySecret.value;
+    } catch (e) {
+      // TMDB-API-KEY is optional
+    }
+
     azureSecrets = secrets;
     console.log('Loaded secrets from Azure Key Vault');
     return azureSecrets;
   } catch (error) {
-    console.warn('Azure Key Vault not available, falling back to environment variables:', error.message);
+    console.error('CRITICAL: Azure Key Vault connection failed:', error.message);
+    console.error('Secrets will not be available. Check Managed Identity configuration.');
     azureSecrets = {};
     return azureSecrets;
   }
 }
 
-// Synchronous config for immediate use (uses env vars)
-// For Azure deployment, call initializeConfig() at startup
+// Check if running on Azure
+const isAzure = !!process.env.AZURE_KEY_VAULT_NAME;
+
+// Synchronous config for immediate use
+// Local dev: uses env vars
+// Azure: secrets are undefined until initializeConfig() is called
 const config = {
   port: process.env.PORT || 3000,
   dataDir: path.join(__dirname, '..', 'data'),
   sourcesDir: path.join(__dirname, '..', 'sources'),
   processedDir: path.join(__dirname, '..', 'sources', 'processed'),
   maxBackups: 10,
-  // Default to env vars, will be overwritten by Azure Key Vault if available
-  anthropicApiKey: process.env.ANTHROPIC_API_KEY,
-  appPassword: process.env.APP_PASSWORD
+  // On Azure: secrets are loaded from Key Vault only (no env var fallback)
+  // Local dev: use env vars
+  anthropicApiKey: isAzure ? undefined : process.env.ANTHROPIC_API_KEY,
+  appPassword: isAzure ? undefined : process.env.APP_PASSWORD,
+  tmdbApiKey: isAzure ? undefined : process.env.TMDB_API_KEY
 };
 
 // Initialize config with Azure Key Vault secrets (call at app startup)
 async function initializeConfig() {
   const secrets = await getAzureSecrets();
 
-  // Override with Azure Key Vault secrets if available
-  if (secrets.anthropicApiKey) {
+  // On Azure: ONLY use Key Vault secrets (no env var fallback for security)
+  // Local dev: already loaded from env vars above
+  if (isAzure) {
     config.anthropicApiKey = secrets.anthropicApiKey;
-  }
-  if (secrets.appPassword) {
     config.appPassword = secrets.appPassword;
+    config.tmdbApiKey = secrets.tmdbApiKey;
+
+    // Log warning if required secrets are missing
+    if (!config.anthropicApiKey) {
+      console.warn('WARNING: ANTHROPIC-API-KEY not found in Azure Key Vault');
+    }
   }
 
   return config;

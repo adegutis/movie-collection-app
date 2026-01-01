@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const config = require('../config');
 const visionService = require('./visionService');
+const barcodeService = require('./barcodeService');
 const movieStore = require('./movieStore');
 
 const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
@@ -47,9 +48,35 @@ async function processPhoto(filePath) {
       throw new Error('Vision API not configured. Set ANTHROPIC_API_KEY in .env file.');
     }
 
-    // Identify movies from photo
-    const detectedMovies = await visionService.identifyMoviesFromPhoto(filePath);
+    // Identify movies from photo (spine OCR)
+    let detectedMovies = await visionService.identifyMoviesFromPhoto(filePath);
 
+    // If spine OCR found no movies, try barcode detection as fallback
+    if (detectedMovies.length === 0 && barcodeService.isConfigured()) {
+      console.log(`No movies found via spine OCR, trying barcode detection for ${fileName}...`);
+
+      try {
+        const barcodeResult = await barcodeService.lookupMovieByBarcode(filePath);
+
+        if (barcodeResult.success) {
+          console.log(`Barcode detection successful: ${barcodeResult.movie.title}`);
+          // Convert barcode result to detectedMovies format
+          detectedMovies = [{
+            title: barcodeResult.movie.title,
+            format: barcodeResult.movie.format,
+            notes: barcodeResult.movie.notes || '',
+            genre: barcodeResult.movie.genre || '',
+            releaseDate: barcodeResult.movie.releaseDate || '',
+            actors: barcodeResult.movie.actors || '',
+            confidence: 1.0 // Barcode lookup is high confidence
+          }];
+        }
+      } catch (barcodeError) {
+        console.log(`Barcode detection failed: ${barcodeError.message}`);
+      }
+    }
+
+    // If both spine OCR and barcode detection found nothing, mark as no movies found
     if (detectedMovies.length === 0) {
       emit('complete', {
         file: fileName,
