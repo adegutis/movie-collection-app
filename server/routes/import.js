@@ -173,6 +173,9 @@ router.post('/confirm', async (req, res) => {
         title: movie.title,
         format: movie.format,
         notes: movie.notes || '',
+        genre: movie.genre || '',
+        releaseDate: movie.releaseDate || '',
+        actors: movie.actors || '',
         source: 'photo_import',
         sourceFile: fileName ? sanitizeFilename(fileName) : undefined
       });

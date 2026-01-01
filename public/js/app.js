@@ -593,6 +593,8 @@ function showResults(movies) {
         <div class="result-title">${escapeHtml(movie.title)}</div>
         <div class="result-meta">
           <span>${movie.format}</span>
+          ${movie.releaseDate ? `<span>${escapeHtml(movie.releaseDate)}</span>` : ''}
+          ${movie.genre ? `<span>${escapeHtml(movie.genre)}</span>` : ''}
           ${movie.notes ? `<span>${escapeHtml(movie.notes)}</span>` : ''}
           ${movie.isDuplicate ? `<span class="result-badge duplicate">Duplicate</span>` : ''}
           ${movie.confidence < 0.8 ? `<span class="result-badge low-confidence">Low confidence</span>` : ''}
@@ -615,7 +617,10 @@ async function confirmImport() {
       moviesToAdd.push({
         title: movie.title,
         format: normalizeFormat(movie.format),
-        notes: movie.notes || ''
+        notes: movie.notes || '',
+        genre: movie.genre || '',
+        releaseDate: movie.releaseDate || '',
+        actors: movie.actors || ''
       });
     }
   });
