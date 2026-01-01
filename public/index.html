@@ -55,6 +55,13 @@
 
       <div class="action-buttons">
         <button class="btn" id="import-photo-btn">Import from Photo</button>
+        <div class="dropdown-container">
+          <button class="btn" id="export-btn">Export Data ▾</button>
+          <div class="dropdown-menu" id="export-menu">
+            <button class="dropdown-item" id="export-json">Download as JSON</button>
+            <button class="dropdown-item" id="export-csv">Download as CSV</button>
+          </div>
+        </div>
         <button class="btn btn-primary" id="add-movie-btn">+ Add Movie</button>
       </div>
     </div>
@@ -114,8 +121,8 @@
               Want to upgrade
             </label>
             <select id="upgrade-target" disabled>
-              <option value="bluray">to Blu-ray</option>
               <option value="4k">to 4K Ultra HD</option>
+              <option value="bluray">to Blu-ray</option>
             </select>
           </div>
 
