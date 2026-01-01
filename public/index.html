@@ -38,6 +38,10 @@
           <select id="sort-by">
             <option value="title">Title</option>
             <option value="format">Format</option>
+            <option value="genre">Genre</option>
+            <option value="releaseDate">Release Date</option>
+            <option value="actors">Actors</option>
+            <option value="notes">Notes</option>
             <option value="dateAdded">Date Added</option>
           </select>
         </label>
@@ -196,13 +200,31 @@
         <div class="import-body">
           <!-- Upload Step -->
           <div id="upload-step" class="import-step">
-            <div class="upload-area" id="upload-area">
+            <div class="upload-options">
+              <button class="btn btn-camera" id="take-photo-btn">📸 Take Photo</button>
+              <span class="or-divider">or</span>
+              <button class="btn btn-upload" id="upload-photo-btn">📁 Upload Photo</button>
+            </div>
+            <div class="upload-area" id="upload-area" style="display: none;">
               <div class="upload-icon">📷</div>
               <p>Drag and drop a photo of your disc cases here</p>
               <p class="upload-hint">or click to select a file</p>
               <input type="file" id="photo-input" accept="image/*" hidden>
             </div>
             <p class="upload-note">Supported formats: JPEG, PNG, GIF, WebP (max 20MB)</p>
+          </div>
+
+          <!-- Camera Step -->
+          <div id="camera-step" class="import-step" style="display: none;">
+            <div class="camera-container">
+              <video id="camera-preview" autoplay playsinline></video>
+              <canvas id="camera-canvas" hidden></canvas>
+            </div>
+            <p class="camera-hint">Position the barcode or disc case spines in the frame</p>
+            <div class="camera-controls">
+              <button class="btn" id="camera-cancel">Cancel</button>
+              <button class="btn btn-primary" id="camera-capture">📸 Capture Photo</button>
+            </div>
           </div>
 
           <!-- Analyzing Step -->

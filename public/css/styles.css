@@ -608,6 +608,62 @@ body {
   margin-top: 16px;
 }
 
+/* Upload Options */
+.upload-options {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.upload-options .btn {
+  flex: 1;
+  max-width: 200px;
+  padding: 16px 24px;
+  font-size: 1rem;
+}
+
+.or-divider {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* Camera */
+.camera-container {
+  position: relative;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--bg);
+}
+
+#camera-preview {
+  width: 100%;
+  height: auto;
+  display: block;
+  background: #000;
+}
+
+.camera-hint {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin: 16px 0;
+}
+
+.camera-controls {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.camera-controls .btn {
+  min-width: 140px;
+}
+
 /* Analyzing */
 .analyzing {
   text-align: center;

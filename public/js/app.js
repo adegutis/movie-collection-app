@@ -52,6 +52,7 @@ const uploadStep = document.getElementById('upload-step');
 const analyzingStep = document.getElementById('analyzing-step');
 const resultsStep = document.getElementById('results-step');
 const errorStep = document.getElementById('error-step');
+const cameraStep = document.getElementById('camera-step');
 const resultsList = document.getElementById('results-list');
 const resultsCount = document.getElementById('results-count');
 const errorMessage = document.getElementById('error-message');
@@ -59,6 +60,12 @@ const importCancel = document.getElementById('import-cancel');
 const importAnother = document.getElementById('import-another');
 const importConfirm = document.getElementById('import-confirm');
 const errorClose = document.getElementById('error-close');
+const takePhotoBtn = document.getElementById('take-photo-btn');
+const uploadPhotoBtn = document.getElementById('upload-photo-btn');
+const cameraPreview = document.getElementById('camera-preview');
+const cameraCanvas = document.getElementById('camera-canvas');
+const cameraCancel = document.getElementById('camera-cancel');
+const cameraCapture = document.getElementById('camera-capture');
 
 // Form elements
 const movieIdInput = document.getElementById('movie-id');
@@ -84,6 +91,7 @@ let debounceTimer = null;
 let importResults = null;
 let importFileName = null;
 let currentDetailsMovie = null;
+let cameraStream = null;
 
 // Format display names
 const formatNames = {
@@ -215,6 +223,17 @@ function setupEventListeners() {
   importModal.addEventListener('click', (e) => {
     if (e.target === importModal) closeImportModal();
   });
+
+  // Upload options
+  takePhotoBtn.addEventListener('click', startCamera);
+  uploadPhotoBtn.addEventListener('click', () => {
+    uploadArea.style.display = 'block';
+    uploadArea.click();
+  });
+
+  // Camera controls
+  cameraCancel.addEventListener('click', stopCameraAndReset);
+  cameraCapture.addEventListener('click', capturePhoto);
 
   // Upload area
   uploadArea.addEventListener('click', () => photoInput.click());
@@ -493,18 +512,22 @@ function openImportModal() {
 }
 
 function closeImportModal() {
+  stopCamera();
   importModal.classList.remove('active');
   resetImportModal();
 }
 
 function resetImportModal() {
   uploadStep.style.display = 'block';
+  uploadArea.style.display = 'none';
   analyzingStep.style.display = 'none';
   resultsStep.style.display = 'none';
   errorStep.style.display = 'none';
+  cameraStep.style.display = 'none';
   photoInput.value = '';
   importResults = null;
   importFileName = null;
+  stopCamera();
 }
 
 function showImportStep(step) {
@@ -512,6 +535,97 @@ function showImportStep(step) {
   analyzingStep.style.display = step === 'analyzing' ? 'block' : 'none';
   resultsStep.style.display = step === 'results' ? 'block' : 'none';
   errorStep.style.display = step === 'error' ? 'block' : 'none';
+  cameraStep.style.display = step === 'camera' ? 'block' : 'none';
+}
+
+// Camera functions
+async function startCamera() {
+  // Check if camera API is available and page is in secure context
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    showImportError('Camera not supported. Please use the upload option instead.');
+    return;
+  }
+
+  // Check if page is in secure context (HTTPS or localhost)
+  if (!window.isSecureContext && window.location.hostname !== 'localhost') {
+    uploadArea.style.display = 'block';
+    showImportError('Camera requires HTTPS on mobile devices. Please use the upload photo option instead, or access via localhost.');
+    return;
+  }
+
+  try {
+    // Request camera access with rear camera preference (better for scanning)
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: { ideal: 'environment' }, // Prefer rear camera
+        width: { ideal: 1920 },
+        height: { ideal: 1080 }
+      }
+    });
+
+    cameraStream = stream;
+    cameraPreview.srcObject = stream;
+    showImportStep('camera');
+  } catch (error) {
+    console.error('Camera access error:', error);
+
+    let errorMsg = 'Could not access camera. ';
+    if (error.name === 'NotAllowedError') {
+      errorMsg += 'Please allow camera access in your browser settings, or use the upload option.';
+    } else if (error.name === 'NotFoundError') {
+      errorMsg += 'No camera found on this device. Please use the upload option.';
+    } else if (error.name === 'NotReadableError') {
+      errorMsg += 'Camera is in use by another app. Please use the upload option.';
+    } else {
+      errorMsg += 'Please use the upload photo option instead.';
+    }
+
+    // Show upload area as fallback
+    uploadArea.style.display = 'block';
+    showImportError(errorMsg);
+  }
+}
+
+function stopCamera() {
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(track => track.stop());
+    cameraStream = null;
+    cameraPreview.srcObject = null;
+  }
+}
+
+function stopCameraAndReset() {
+  stopCamera();
+  resetImportModal();
+}
+
+async function capturePhoto() {
+  if (!cameraStream) return;
+
+  // Set canvas dimensions to match video
+  cameraCanvas.width = cameraPreview.videoWidth;
+  cameraCanvas.height = cameraPreview.videoHeight;
+
+  // Draw current video frame to canvas
+  const context = cameraCanvas.getContext('2d');
+  context.drawImage(cameraPreview, 0, 0);
+
+  // Convert canvas to blob
+  cameraCanvas.toBlob(async (blob) => {
+    if (!blob) {
+      showImportError('Failed to capture photo. Please try again.');
+      return;
+    }
+
+    // Stop camera
+    stopCamera();
+
+    // Create file from blob
+    const file = new File([blob], 'camera-photo.jpg', { type: 'image/jpeg' });
+
+    // Process the photo using existing handleFile function
+    await handleFile(file);
+  }, 'image/jpeg', 0.95);
 }
 
 function handleFileSelect(e) {
