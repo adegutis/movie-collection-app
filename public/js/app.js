@@ -344,7 +344,7 @@ function openModal(movie = null) {
     releaseDateInput.value = movie.releaseDate || '';
     actorsInput.value = movie.actors || '';
     wantUpgradeInput.checked = movie.wantToUpgrade;
-    upgradeTargetInput.value = movie.upgradeTarget || 'bluray';
+    upgradeTargetInput.value = movie.upgradeTarget || '4k';
     upgradeTargetInput.disabled = !movie.wantToUpgrade;
   } else {
     modalTitle.textContent = 'Add Movie';
