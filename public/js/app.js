@@ -191,9 +191,10 @@ function setupEventListeners() {
     }
   });
   detailsEditBtn.addEventListener('click', () => {
+    const movieToEdit = currentDetailsMovie;
     closeDetailsModal();
-    if (currentDetailsMovie) {
-      openModal(currentDetailsMovie);
+    if (movieToEdit) {
+      openModal(movieToEdit);
     }
   });
   detailsDeleteBtn.addEventListener('click', () => {
