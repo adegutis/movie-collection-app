@@ -128,6 +128,30 @@ body {
   cursor: pointer;
 }
 
+.sort-order-btn {
+  padding: 8px 12px;
+  font-size: 1rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+}
+
+.sort-order-btn:hover {
+  background: var(--border);
+  color: var(--text);
+}
+
+.sort-order-btn:active {
+  transform: scale(0.95);
+}
+
 .view-toggle {
   display: flex;
   gap: 4px;
@@ -606,6 +630,62 @@ body {
   font-size: 0.85rem;
   text-align: center;
   margin-top: 16px;
+}
+
+/* Upload Options */
+.upload-options {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.upload-options .btn {
+  flex: 1;
+  max-width: 200px;
+  padding: 16px 24px;
+  font-size: 1rem;
+}
+
+.or-divider {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* Camera */
+.camera-container {
+  position: relative;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--bg);
+}
+
+#camera-preview {
+  width: 100%;
+  height: auto;
+  display: block;
+  background: #000;
+}
+
+.camera-hint {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin: 16px 0;
+}
+
+.camera-controls {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.camera-controls .btn {
+  min-width: 140px;
 }
 
 /* Analyzing */

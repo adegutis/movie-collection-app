@@ -90,10 +90,22 @@ Common barcode formats:
  * Look up product info from UPCitemdb API
  */
 async function lookupUPC(barcode) {
-  const url = `https://api.upcitemdb.com/prod/trial/lookup?upc=${barcode}`;
+  // Security: Validate barcode format (UPC/EAN should be numeric, 8-14 digits)
+  if (!barcode || !/^\d{8,14}$/.test(barcode)) {
+    console.warn('Invalid barcode format:', barcode);
+    return null;
+  }
+
+  // Use URL constructor for safer URL building
+  const url = new URL('https://api.upcitemdb.com/prod/trial/lookup');
+  url.searchParams.set('upc', barcode);
 
   try {
-    const response = await fetch(url);
+    const response = await fetch(url.toString(), {
+      headers: {
+        'User-Agent': 'MovieCollection/1.0'
+      }
+    });
     const data = await response.json();
 
     if (!response.ok || !data.items || data.items.length === 0) {
@@ -123,10 +135,26 @@ async function searchTMDb(title, year = null) {
     return null;
   }
 
+  // Security: Validate title is not empty
+  if (!title || typeof title !== 'string' || title.trim().length === 0) {
+    console.warn('Invalid title for TMDb search');
+    return null;
+  }
+
+  // Security: Validate year format if provided (should be 4 digits)
+  if (year !== null && year !== undefined && !/^\d{4}$/.test(String(year))) {
+    console.warn('Invalid year format for TMDb search:', year);
+    year = null; // Ignore invalid year
+  }
+
   try {
-    const query = encodeURIComponent(title);
-    const yearParam = year ? `&year=${year}` : '';
-    const url = `https://api.themoviedb.org/3/search/movie?api_key=${config.tmdbApiKey}&query=${query}${yearParam}`;
+    // Use URL constructor for safer URL building
+    const url = new URL('https://api.themoviedb.org/3/search/movie');
+    url.searchParams.set('api_key', config.tmdbApiKey);
+    url.searchParams.set('query', title);
+    if (year) {
+      url.searchParams.set('year', String(year));
+    }
 
     const response = await fetch(url);
     const data = await response.json();
@@ -139,8 +167,10 @@ async function searchTMDb(title, year = null) {
     const movie = data.results[0];
 
     // Get additional details
-    const detailsUrl = `https://api.themoviedb.org/3/movie/${movie.id}?api_key=${config.tmdbApiKey}&append_to_response=credits`;
-    const detailsResponse = await fetch(detailsUrl);
+    const detailsUrl = new URL(`https://api.themoviedb.org/3/movie/${movie.id}`);
+    detailsUrl.searchParams.set('api_key', config.tmdbApiKey);
+    detailsUrl.searchParams.set('append_to_response', 'credits');
+    const detailsResponse = await fetch(detailsUrl.toString());
     const details = await detailsResponse.json();
 
     // Extract top 3 actors

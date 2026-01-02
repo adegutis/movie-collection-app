@@ -49,14 +49,19 @@ async function identifyMoviesFromPhoto(imagePath) {
         },
         {
           type: 'text',
-          text: `Analyze this photo of DVD/Blu-ray movie cases (likely on a shelf or in a collection).
+          text: `Analyze this photo of DVD/Blu-ray movie disc cases. The image may show:
+- Movie cases on a shelf (spines visible)
+- Front covers of disc cases
+- Back covers or case artwork
+- Individual disc cases at any angle
 
 For each visible movie, identify:
-1. Title - exact title as printed on the case spine or front
+1. Title - exact title as printed anywhere on the case (spine, front, back, etc.)
 2. Format - Look for these indicators:
    - "DVD" logo (usually red/orange)
    - "Blu-ray" or "Blu-ray Disc" logo (blue)
    - "4K Ultra HD" logo (black/gold)
+   If no format logo is visible, make an educated guess based on the case design
 3. Notes - Any edition info visible (Special Edition, Collector's Edition, season numbers, etc.)
 4. Genre - The genre of the movie (Action, Comedy, Drama, Horror, Sci-Fi, etc.) based on your knowledge
 5. Release Date - The theatrical release year (e.g., "1994", "2010") based on your knowledge

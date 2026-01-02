@@ -8,6 +8,11 @@ const backupsDir = path.join(config.dataDir, 'backups');
 
 let moviesCache = null;
 
+// Security: Validation allowlists
+const ALLOWED_SORT_FIELDS = ['title', 'format', 'genre', 'releaseDate', 'actors', 'notes', 'dateAdded', 'dateModified'];
+const ALLOWED_FORMATS = ['dvd', 'bluray', '4k', 'mixed', 'bluray_4k'];
+const ALLOWED_UPGRADE_TARGETS = ['4k', 'bluray', null];
+
 function ensureDirectories() {
   if (!fs.existsSync(config.dataDir)) {
     fs.mkdirSync(config.dataDir, { recursive: true });
@@ -88,8 +93,8 @@ function getAll(filters = {}) {
     movies = movies.filter(m => m.wantToUpgrade === want);
   }
 
-  // Sort
-  const sortBy = filters.sortBy || 'title';
+  // Sort - Security: Validate sortBy against allowlist
+  const sortBy = ALLOWED_SORT_FIELDS.includes(filters.sortBy) ? filters.sortBy : 'title';
   const sortOrder = filters.sortOrder === 'desc' ? -1 : 1;
 
   movies.sort((a, b) => {
@@ -113,15 +118,29 @@ function getById(id) {
 function create(movieData) {
   const data = loadMovies();
 
+  // Security: Validate format
+  const normalizedFormat = normalizeFormat(movieData.format);
+  const format = ALLOWED_FORMATS.includes(normalizedFormat) ? normalizedFormat : 'dvd';
+
+  // Security: Validate upgradeTarget
+  const upgradeTarget = ALLOWED_UPGRADE_TARGETS.includes(movieData.upgradeTarget)
+    ? movieData.upgradeTarget
+    : null;
+
+  // Security: Validate releaseDate format (should be 4-digit year or empty)
+  const releaseDate = movieData.releaseDate && /^\d{4}$/.test(movieData.releaseDate)
+    ? movieData.releaseDate
+    : '';
+
   const movie = {
     id: uuidv4(),
     title: movieData.title,
-    format: normalizeFormat(movieData.format),
+    format: format,
     notes: movieData.notes || '',
     wantToUpgrade: movieData.wantToUpgrade || false,
-    upgradeTarget: movieData.upgradeTarget || null,
+    upgradeTarget: upgradeTarget,
     genre: movieData.genre || '',
-    releaseDate: movieData.releaseDate || '',
+    releaseDate: releaseDate,
     actors: movieData.actors || '',
     dateAdded: new Date().toISOString(),
     dateModified: new Date().toISOString(),
@@ -146,12 +165,32 @@ function update(id, updates) {
   const movie = data.movies[index];
 
   if (updates.title !== undefined) movie.title = updates.title;
-  if (updates.format !== undefined) movie.format = normalizeFormat(updates.format);
+
+  // Security: Validate format
+  if (updates.format !== undefined) {
+    const normalizedFormat = normalizeFormat(updates.format);
+    movie.format = ALLOWED_FORMATS.includes(normalizedFormat) ? normalizedFormat : movie.format;
+  }
+
   if (updates.notes !== undefined) movie.notes = updates.notes;
   if (updates.wantToUpgrade !== undefined) movie.wantToUpgrade = updates.wantToUpgrade;
-  if (updates.upgradeTarget !== undefined) movie.upgradeTarget = updates.upgradeTarget;
+
+  // Security: Validate upgradeTarget
+  if (updates.upgradeTarget !== undefined) {
+    movie.upgradeTarget = ALLOWED_UPGRADE_TARGETS.includes(updates.upgradeTarget)
+      ? updates.upgradeTarget
+      : movie.upgradeTarget;
+  }
+
   if (updates.genre !== undefined) movie.genre = updates.genre;
-  if (updates.releaseDate !== undefined) movie.releaseDate = updates.releaseDate;
+
+  // Security: Validate releaseDate format
+  if (updates.releaseDate !== undefined) {
+    movie.releaseDate = updates.releaseDate && /^\d{4}$/.test(updates.releaseDate)
+      ? updates.releaseDate
+      : '';
+  }
+
   if (updates.actors !== undefined) movie.actors = updates.actors;
 
   movie.dateModified = new Date().toISOString();

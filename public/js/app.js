@@ -5,6 +5,8 @@ const searchInput = document.getElementById('search');
 const formatFilter = document.getElementById('format-filter');
 const upgradeFilter = document.getElementById('upgrade-filter');
 const sortBy = document.getElementById('sort-by');
+const sortOrderBtn = document.getElementById('sort-order-btn');
+const sortOrderIcon = document.getElementById('sort-order-icon');
 const addMovieBtn = document.getElementById('add-movie-btn');
 const viewListBtn = document.getElementById('view-list');
 const viewGridBtn = document.getElementById('view-grid');
@@ -52,6 +54,7 @@ const uploadStep = document.getElementById('upload-step');
 const analyzingStep = document.getElementById('analyzing-step');
 const resultsStep = document.getElementById('results-step');
 const errorStep = document.getElementById('error-step');
+const cameraStep = document.getElementById('camera-step');
 const resultsList = document.getElementById('results-list');
 const resultsCount = document.getElementById('results-count');
 const errorMessage = document.getElementById('error-message');
@@ -59,6 +62,12 @@ const importCancel = document.getElementById('import-cancel');
 const importAnother = document.getElementById('import-another');
 const importConfirm = document.getElementById('import-confirm');
 const errorClose = document.getElementById('error-close');
+const takePhotoBtn = document.getElementById('take-photo-btn');
+const uploadPhotoBtn = document.getElementById('upload-photo-btn');
+const cameraPreview = document.getElementById('camera-preview');
+const cameraCanvas = document.getElementById('camera-canvas');
+const cameraCancel = document.getElementById('camera-cancel');
+const cameraCapture = document.getElementById('camera-capture');
 
 // Form elements
 const movieIdInput = document.getElementById('movie-id');
@@ -76,7 +85,8 @@ let currentFilters = {
   search: '',
   format: '',
   wantToUpgrade: undefined,
-  sortBy: 'title'
+  sortBy: 'title',
+  sortOrder: 'asc'
 };
 let currentView = 'list'; // 'list' or 'grid'
 let deleteMovieId = null;
@@ -84,6 +94,7 @@ let debounceTimer = null;
 let importResults = null;
 let importFileName = null;
 let currentDetailsMovie = null;
+let cameraStream = null;
 
 // Format display names
 const formatNames = {
@@ -125,6 +136,12 @@ function setupEventListeners() {
 
   sortBy.addEventListener('change', () => {
     currentFilters.sortBy = sortBy.value;
+    loadMovies();
+  });
+
+  sortOrderBtn.addEventListener('click', () => {
+    currentFilters.sortOrder = currentFilters.sortOrder === 'asc' ? 'desc' : 'asc';
+    sortOrderIcon.textContent = currentFilters.sortOrder === 'asc' ? '▲' : '▼';
     loadMovies();
   });
 
@@ -215,6 +232,17 @@ function setupEventListeners() {
   importModal.addEventListener('click', (e) => {
     if (e.target === importModal) closeImportModal();
   });
+
+  // Upload options
+  takePhotoBtn.addEventListener('click', startCamera);
+  uploadPhotoBtn.addEventListener('click', () => {
+    uploadArea.style.display = 'block';
+    uploadArea.click();
+  });
+
+  // Camera controls
+  cameraCancel.addEventListener('click', stopCameraAndReset);
+  cameraCapture.addEventListener('click', capturePhoto);
 
   // Upload area
   uploadArea.addEventListener('click', () => photoInput.click());
@@ -394,7 +422,7 @@ async function handleFormSubmit(e) {
 
 async function editMovie(id) {
   try {
-    const res = await fetch(`/api/movies/${id}`);
+    const res = await fetch(`/api/movies/${id}`, { credentials: 'same-origin' });
     const movie = await res.json();
     openModal(movie);
   } catch (error) {
@@ -432,7 +460,7 @@ function escapeHtml(text) {
 // Details modal functions
 async function showMovieDetails(id) {
   try {
-    const res = await fetch(`/api/movies/${id}`);
+    const res = await fetch(`/api/movies/${id}`, { credentials: 'same-origin' });
     const movie = await res.json();
     currentDetailsMovie = movie;
 
@@ -493,18 +521,22 @@ function openImportModal() {
 }
 
 function closeImportModal() {
+  stopCamera();
   importModal.classList.remove('active');
   resetImportModal();
 }
 
 function resetImportModal() {
   uploadStep.style.display = 'block';
+  uploadArea.style.display = 'none';
   analyzingStep.style.display = 'none';
   resultsStep.style.display = 'none';
   errorStep.style.display = 'none';
+  cameraStep.style.display = 'none';
   photoInput.value = '';
   importResults = null;
   importFileName = null;
+  stopCamera();
 }
 
 function showImportStep(step) {
@@ -512,6 +544,97 @@ function showImportStep(step) {
   analyzingStep.style.display = step === 'analyzing' ? 'block' : 'none';
   resultsStep.style.display = step === 'results' ? 'block' : 'none';
   errorStep.style.display = step === 'error' ? 'block' : 'none';
+  cameraStep.style.display = step === 'camera' ? 'block' : 'none';
+}
+
+// Camera functions
+async function startCamera() {
+  // Check if camera API is available and page is in secure context
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    showImportError('Camera not supported. Please use the upload option instead.');
+    return;
+  }
+
+  // Check if page is in secure context (HTTPS or localhost)
+  if (!window.isSecureContext && window.location.hostname !== 'localhost') {
+    uploadArea.style.display = 'block';
+    showImportError('Camera requires HTTPS on mobile devices. Please use the upload photo option instead, or access via localhost.');
+    return;
+  }
+
+  try {
+    // Request camera access with rear camera preference (better for scanning)
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: { ideal: 'environment' }, // Prefer rear camera
+        width: { ideal: 1920 },
+        height: { ideal: 1080 }
+      }
+    });
+
+    cameraStream = stream;
+    cameraPreview.srcObject = stream;
+    showImportStep('camera');
+  } catch (error) {
+    console.error('Camera access error:', error);
+
+    let errorMsg = 'Could not access camera. ';
+    if (error.name === 'NotAllowedError') {
+      errorMsg += 'Please allow camera access in your browser settings, or use the upload option.';
+    } else if (error.name === 'NotFoundError') {
+      errorMsg += 'No camera found on this device. Please use the upload option.';
+    } else if (error.name === 'NotReadableError') {
+      errorMsg += 'Camera is in use by another app. Please use the upload option.';
+    } else {
+      errorMsg += 'Please use the upload photo option instead.';
+    }
+
+    // Show upload area as fallback
+    uploadArea.style.display = 'block';
+    showImportError(errorMsg);
+  }
+}
+
+function stopCamera() {
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(track => track.stop());
+    cameraStream = null;
+    cameraPreview.srcObject = null;
+  }
+}
+
+function stopCameraAndReset() {
+  stopCamera();
+  resetImportModal();
+}
+
+async function capturePhoto() {
+  if (!cameraStream) return;
+
+  // Set canvas dimensions to match video
+  cameraCanvas.width = cameraPreview.videoWidth;
+  cameraCanvas.height = cameraPreview.videoHeight;
+
+  // Draw current video frame to canvas
+  const context = cameraCanvas.getContext('2d');
+  context.drawImage(cameraPreview, 0, 0);
+
+  // Convert canvas to blob
+  cameraCanvas.toBlob(async (blob) => {
+    if (!blob) {
+      showImportError('Failed to capture photo. Please try again.');
+      return;
+    }
+
+    // Stop camera
+    stopCamera();
+
+    // Create file from blob
+    const file = new File([blob], 'camera-photo.jpg', { type: 'image/jpeg' });
+
+    // Process the photo using existing handleFile function
+    await handleFile(file);
+  }, 'image/jpeg', 0.95);
 }
 
 function handleFileSelect(e) {
@@ -541,9 +664,17 @@ async function handleFile(file) {
   formData.append('photo', file);
 
   try {
+    const csrfToken = await API.getCsrfToken();
+    const headers = {};
+    if (csrfToken) {
+      headers['X-CSRF-Token'] = csrfToken;
+    }
+
     const res = await fetch('/api/import/upload', {
       method: 'POST',
-      body: formData
+      headers: headers,
+      body: formData,
+      credentials: 'same-origin'
     });
 
     const data = await res.json();
@@ -558,7 +689,21 @@ async function handleFile(file) {
     }
 
     if (data.movies.length === 0) {
-      showImportError('No movies detected in this photo. Try a clearer image with visible disc case spines.');
+      let errorMsg = 'No movies detected. ';
+
+      if (data.debug) {
+        if (data.debug.barcodeAttempted) {
+          if (data.debug.barcodeNumber) {
+            errorMsg += `Found barcode ${data.debug.barcodeNumber} but couldn't match to a movie. `;
+          } else {
+            errorMsg += 'No barcode detected. ';
+          }
+        }
+        errorMsg += 'AI analysis found no disc cases. ';
+      }
+
+      errorMsg += '\n\nTry:\n- A clearer, well-lit photo\n- Closer to the barcode or disc case\n- Different angle showing the title clearly';
+      showImportError(errorMsg);
       return;
     }
 
@@ -633,11 +778,12 @@ async function confirmImport() {
   try {
     const res = await fetch('/api/import/confirm', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await API.getHeaders(),
       body: JSON.stringify({
         movies: moviesToAdd,
         fileName: importFileName
-      })
+      }),
+      credentials: 'same-origin'
     });
 
     const data = await res.json();
@@ -666,14 +812,15 @@ function normalizeFormat(format) {
 // Export functions
 async function downloadJSON() {
   try {
-    const res = await fetch('/api/movies/export?format=json');
+    const res = await fetch('/api/movies/export?format=json', { credentials: 'same-origin' });
     const data = await res.json();
 
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `movie-collection-${new Date().toISOString().split('T')[0]}.json`;
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+    a.download = `movie-collection-${timestamp}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -686,14 +833,15 @@ async function downloadJSON() {
 
 async function downloadCSV() {
   try {
-    const res = await fetch('/api/movies/export?format=csv');
+    const res = await fetch('/api/movies/export?format=csv', { credentials: 'same-origin' });
     const csv = await res.text();
 
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `movie-collection-${new Date().toISOString().split('T')[0]}.csv`;
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+    a.download = `movie-collection-${timestamp}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
