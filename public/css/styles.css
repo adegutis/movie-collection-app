@@ -128,6 +128,30 @@ body {
   cursor: pointer;
 }
 
+.sort-order-btn {
+  padding: 8px 12px;
+  font-size: 1rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+}
+
+.sort-order-btn:hover {
+  background: var(--border);
+  color: var(--text);
+}
+
+.sort-order-btn:active {
+  transform: scale(0.95);
+}
+
 .view-toggle {
   display: flex;
   gap: 4px;

@@ -85,6 +85,10 @@ function generateSessionId() {
   return crypto.randomBytes(32).toString('hex');
 }
 
+function generateCsrfToken() {
+  return crypto.randomBytes(32).toString('hex');
+}
+
 // Security: Timing-safe password comparison
 function timingSafePasswordCompare(a, b) {
   if (!a || !b) return false;
@@ -123,6 +127,20 @@ function parseCookies(cookieHeader) {
   return cookies;
 }
 
+// Security: Safe redirect helper - only allows redirects to allowed paths
+function safeRedirect(res, path) {
+  const allowedPaths = ['/', '/login'];
+  // Remove query string for comparison
+  const normalizedPath = path.split('?')[0];
+
+  if (!allowedPaths.includes(normalizedPath)) {
+    console.warn('Attempted redirect to disallowed path:', path);
+    return res.redirect('/');
+  }
+
+  return res.redirect(path);
+}
+
 function authMiddleware(req, res, next) {
   // Skip if no password configured (local development)
   if (!config.appPassword) {
@@ -152,7 +170,7 @@ function authMiddleware(req, res, next) {
     return res.status(401).json({ error: 'Authentication required' });
   }
 
-  return res.redirect('/login');
+  return safeRedirect(res, '/login');
 }
 
 app.use(authMiddleware);
@@ -160,7 +178,7 @@ app.use(authMiddleware);
 // Login page
 app.get('/login', (req, res) => {
   if (!config.appPassword) {
-    return res.redirect('/');
+    return safeRedirect(res, '/');
   }
   // Security: Only check for presence of error param, don't reflect any user input
   const hasError = Object.hasOwn(req.query, 'error');
@@ -238,7 +256,8 @@ app.post('/api/auth/login', loginLimiter, (req, res) => {
   // Security: Use timing-safe comparison
   if (timingSafePasswordCompare(password, config.appPassword)) {
     const sessionId = generateSessionId();
-    sessions.set(sessionId, { created: Date.now() });
+    const csrfToken = generateCsrfToken();
+    sessions.set(sessionId, { created: Date.now(), csrfToken });
 
     // Security: Build cookie with Secure flag in production
     const cookieParts = [
@@ -254,10 +273,10 @@ app.post('/api/auth/login', loginLimiter, (req, res) => {
     }
 
     res.setHeader('Set-Cookie', cookieParts.join('; '));
-    return res.redirect('/');
+    return safeRedirect(res, '/');
   }
 
-  return res.redirect('/login?error=1');
+  return safeRedirect(res, '/login?error=1');
 });
 
 // Logout API
@@ -270,15 +289,63 @@ app.post('/api/auth/logout', (req, res) => {
   }
 
   res.setHeader('Set-Cookie', 'session=; Path=/; HttpOnly; Max-Age=0');
-  res.redirect('/login');
+  safeRedirect(res, '/login');
 });
+
+// Get CSRF token
+app.get('/api/auth/csrf', (req, res) => {
+  const cookies = parseCookies(req.headers.cookie);
+  const sessionId = cookies['session'];
+
+  if (sessionId && sessions.has(sessionId)) {
+    const session = sessions.get(sessionId);
+    if (isSessionValid(session)) {
+      // Generate CSRF token if it doesn't exist
+      if (!session.csrfToken) {
+        session.csrfToken = generateCsrfToken();
+      }
+      return res.json({ token: session.csrfToken });
+    }
+  }
+
+  res.status(401).json({ error: 'Not authenticated' });
+});
+
+// CSRF protection middleware
+function csrfProtection(req, res, next) {
+  // Skip if no password configured (local development)
+  if (!config.appPassword) {
+    return next();
+  }
+
+  // Skip for GET, HEAD, OPTIONS
+  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+    return next();
+  }
+
+  const cookies = parseCookies(req.headers.cookie);
+  const sessionId = cookies['session'];
+
+  if (!sessionId || !sessions.has(sessionId)) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  const session = sessions.get(sessionId);
+  const csrfToken = req.headers['x-csrf-token'];
+
+  if (!csrfToken || csrfToken !== session.csrfToken) {
+    return res.status(403).json({ error: 'Invalid CSRF token' });
+  }
+
+  next();
+}
 
 // Static files (after auth middleware)
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
-// API Routes
-app.use('/api/movies', moviesRouter);
-app.use('/api/import', importRouter);
+// API Routes with CSRF protection
+app.use('/api/movies', csrfProtection, moviesRouter);
+app.use('/api/import', csrfProtection, importRouter);
 
 // Serve frontend for all other routes
 app.get('*', (req, res) => {

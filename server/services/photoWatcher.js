@@ -48,13 +48,10 @@ async function processPhoto(filePath) {
       throw new Error('Vision API not configured. Set ANTHROPIC_API_KEY in .env file.');
     }
 
-    // Identify movies from photo (spine OCR)
-    let detectedMovies = await visionService.identifyMoviesFromPhoto(filePath);
+    let detectedMovies = [];
 
-    // If spine OCR found no movies, try barcode detection as fallback
-    if (detectedMovies.length === 0 && barcodeService.isConfigured()) {
-      console.log(`No movies found via spine OCR, trying barcode detection for ${fileName}...`);
-
+    // Try barcode detection first (more reliable when available)
+    if (barcodeService.isConfigured()) {
       try {
         const barcodeResult = await barcodeService.lookupMovieByBarcode(filePath);
 
@@ -76,7 +73,13 @@ async function processPhoto(filePath) {
       }
     }
 
-    // If both spine OCR and barcode detection found nothing, mark as no movies found
+    // If barcode detection found no movies, try AI spine/case analysis as fallback
+    if (detectedMovies.length === 0) {
+      console.log(`No movies found via barcode, trying AI analysis for ${fileName}...`);
+      detectedMovies = await visionService.identifyMoviesFromPhoto(filePath);
+    }
+
+    // If both barcode detection and AI analysis found nothing, mark as no movies found
     if (detectedMovies.length === 0) {
       emit('complete', {
         file: fileName,
@@ -116,7 +119,7 @@ async function processPhoto(filePath) {
           const created = movieStore.create({
             title: movie.title,
             format: movie.format,
-            notes: `${movie.notes} [Confidence: ${Math.round(movie.confidence * 100)}%]`.trim(),
+            notes: movie.notes,
             genre: movie.genre || '',
             releaseDate: movie.releaseDate || '',
             actors: movie.actors || '',

@@ -5,6 +5,8 @@ const searchInput = document.getElementById('search');
 const formatFilter = document.getElementById('format-filter');
 const upgradeFilter = document.getElementById('upgrade-filter');
 const sortBy = document.getElementById('sort-by');
+const sortOrderBtn = document.getElementById('sort-order-btn');
+const sortOrderIcon = document.getElementById('sort-order-icon');
 const addMovieBtn = document.getElementById('add-movie-btn');
 const viewListBtn = document.getElementById('view-list');
 const viewGridBtn = document.getElementById('view-grid');
@@ -83,7 +85,8 @@ let currentFilters = {
   search: '',
   format: '',
   wantToUpgrade: undefined,
-  sortBy: 'title'
+  sortBy: 'title',
+  sortOrder: 'asc'
 };
 let currentView = 'list'; // 'list' or 'grid'
 let deleteMovieId = null;
@@ -133,6 +136,12 @@ function setupEventListeners() {
 
   sortBy.addEventListener('change', () => {
     currentFilters.sortBy = sortBy.value;
+    loadMovies();
+  });
+
+  sortOrderBtn.addEventListener('click', () => {
+    currentFilters.sortOrder = currentFilters.sortOrder === 'asc' ? 'desc' : 'asc';
+    sortOrderIcon.textContent = currentFilters.sortOrder === 'asc' ? '▲' : '▼';
     loadMovies();
   });
 
@@ -413,7 +422,7 @@ async function handleFormSubmit(e) {
 
 async function editMovie(id) {
   try {
-    const res = await fetch(`/api/movies/${id}`);
+    const res = await fetch(`/api/movies/${id}`, { credentials: 'same-origin' });
     const movie = await res.json();
     openModal(movie);
   } catch (error) {
@@ -451,7 +460,7 @@ function escapeHtml(text) {
 // Details modal functions
 async function showMovieDetails(id) {
   try {
-    const res = await fetch(`/api/movies/${id}`);
+    const res = await fetch(`/api/movies/${id}`, { credentials: 'same-origin' });
     const movie = await res.json();
     currentDetailsMovie = movie;
 
@@ -655,9 +664,17 @@ async function handleFile(file) {
   formData.append('photo', file);
 
   try {
+    const csrfToken = await API.getCsrfToken();
+    const headers = {};
+    if (csrfToken) {
+      headers['X-CSRF-Token'] = csrfToken;
+    }
+
     const res = await fetch('/api/import/upload', {
       method: 'POST',
-      body: formData
+      headers: headers,
+      body: formData,
+      credentials: 'same-origin'
     });
 
     const data = await res.json();
@@ -672,7 +689,21 @@ async function handleFile(file) {
     }
 
     if (data.movies.length === 0) {
-      showImportError('No movies detected in this photo. Try a clearer image with visible disc case spines.');
+      let errorMsg = 'No movies detected. ';
+
+      if (data.debug) {
+        if (data.debug.barcodeAttempted) {
+          if (data.debug.barcodeNumber) {
+            errorMsg += `Found barcode ${data.debug.barcodeNumber} but couldn't match to a movie. `;
+          } else {
+            errorMsg += 'No barcode detected. ';
+          }
+        }
+        errorMsg += 'AI analysis found no disc cases. ';
+      }
+
+      errorMsg += '\n\nTry:\n- A clearer, well-lit photo\n- Closer to the barcode or disc case\n- Different angle showing the title clearly';
+      showImportError(errorMsg);
       return;
     }
 
@@ -747,11 +778,12 @@ async function confirmImport() {
   try {
     const res = await fetch('/api/import/confirm', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await API.getHeaders(),
       body: JSON.stringify({
         movies: moviesToAdd,
         fileName: importFileName
-      })
+      }),
+      credentials: 'same-origin'
     });
 
     const data = await res.json();
@@ -780,14 +812,15 @@ function normalizeFormat(format) {
 // Export functions
 async function downloadJSON() {
   try {
-    const res = await fetch('/api/movies/export?format=json');
+    const res = await fetch('/api/movies/export?format=json', { credentials: 'same-origin' });
     const data = await res.json();
 
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `movie-collection-${new Date().toISOString().split('T')[0]}.json`;
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+    a.download = `movie-collection-${timestamp}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -800,14 +833,15 @@ async function downloadJSON() {
 
 async function downloadCSV() {
   try {
-    const res = await fetch('/api/movies/export?format=csv');
+    const res = await fetch('/api/movies/export?format=csv', { credentials: 'same-origin' });
     const csv = await res.text();
 
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `movie-collection-${new Date().toISOString().split('T')[0]}.csv`;
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+    a.download = `movie-collection-${timestamp}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

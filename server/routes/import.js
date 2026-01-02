@@ -3,6 +3,7 @@ const router = express.Router();
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
+const fileType = require('file-type');
 const csvImporter = require('../services/csvImporter');
 const photoWatcher = require('../services/photoWatcher');
 const visionService = require('../services/visionService');
@@ -26,6 +27,38 @@ function sanitizeFilename(filename) {
 function hasAllowedExtension(filename, allowedExtensions) {
   const ext = path.extname(filename).toLowerCase();
   return allowedExtensions.includes(ext);
+}
+
+// Security: Validate uploaded file using magic bytes (file signature)
+async function validateUploadedFile(req, res, next) {
+  if (!req.file) {
+    return next();
+  }
+
+  try {
+    const buffer = fs.readFileSync(req.file.path);
+    const type = await fileType.fromBuffer(buffer);
+
+    // Allowed MIME types based on magic bytes
+    const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
+    if (!type || !allowedMimes.includes(type.mime)) {
+      // Clean up invalid file
+      fs.unlinkSync(req.file.path);
+      return res.status(400).json({
+        error: 'Invalid file content. File does not match expected image format.'
+      });
+    }
+
+    next();
+  } catch (error) {
+    // Clean up on error
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    console.error('Error validating file:', error);
+    res.status(500).json({ error: 'Error validating uploaded file' });
+  }
 }
 
 // Configure multer for file uploads
@@ -97,7 +130,7 @@ router.get('/status', (req, res) => {
 });
 
 // POST /api/import/upload - Upload and analyze a photo
-router.post('/upload', upload.single('photo'), async (req, res) => {
+router.post('/upload', upload.single('photo'), validateUploadedFile, async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No photo uploaded' });
@@ -115,8 +148,51 @@ router.post('/upload', upload.single('photo'), async (req, res) => {
     const imagePath = req.file.path;
     const fileName = req.file.filename;
 
-    // Analyze the photo
-    const detectedMovies = await visionService.identifyMoviesFromPhoto(imagePath);
+    let detectedMovies = [];
+    let detectionMethod = null;
+    let barcodeAttempted = false;
+    let barcodeNumber = null;
+
+    // Try barcode detection first (more reliable when available)
+    if (barcodeService.isConfigured()) {
+      barcodeAttempted = true;
+      try {
+        const barcodeResult = await barcodeService.lookupMovieByBarcode(imagePath);
+
+        if (barcodeResult.success) {
+          console.log(`✓ Barcode detection successful: ${barcodeResult.movie.title}`);
+          detectionMethod = 'barcode';
+          barcodeNumber = barcodeResult.barcode;
+          // Convert barcode result to detectedMovies format
+          detectedMovies = [{
+            title: barcodeResult.movie.title,
+            format: barcodeResult.movie.format,
+            notes: barcodeResult.movie.notes || '',
+            genre: barcodeResult.movie.genre || '',
+            releaseDate: barcodeResult.movie.releaseDate || '',
+            actors: barcodeResult.movie.actors || '',
+            confidence: 1.0 // Barcode lookup is high confidence
+          }];
+        } else {
+          console.log(`✗ Barcode detection: ${barcodeResult.error || 'No barcode found'}`);
+          barcodeNumber = barcodeResult.barcode || null;
+        }
+      } catch (barcodeError) {
+        console.log(`✗ Barcode detection error: ${barcodeError.message}`);
+      }
+    }
+
+    // If barcode detection found no movies, try AI analysis as fallback
+    if (detectedMovies.length === 0) {
+      console.log(`Trying AI disc case analysis for ${fileName}...`);
+      detectedMovies = await visionService.identifyMoviesFromPhoto(imagePath);
+      if (detectedMovies.length > 0) {
+        console.log(`✓ AI analysis found ${detectedMovies.length} movie(s)`);
+        detectionMethod = 'ai_vision';
+      } else {
+        console.log(`✗ AI analysis found no movies`);
+      }
+    }
 
     // Check for duplicates
     const existingMovies = movieStore.getAll();
@@ -135,7 +211,12 @@ router.post('/upload', upload.single('photo'), async (req, res) => {
       success: true,
       fileName,
       movies: results,
-      count: results.length
+      count: results.length,
+      debug: {
+        detectionMethod,
+        barcodeAttempted,
+        barcodeNumber
+      }
     });
   } catch (error) {
     // Clean up uploaded file on error
@@ -307,7 +388,7 @@ function normalizeTitle(title) {
 }
 
 // POST /api/import/barcode - Upload and analyze a barcode photo
-router.post('/barcode', upload.single('photo'), async (req, res) => {
+router.post('/barcode', upload.single('photo'), validateUploadedFile, async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No photo uploaded' });
