@@ -104,6 +104,8 @@ let visibleColumns = {
   actors: false,
   notes: false
 };
+let columnOrder = ['title', 'genre', 'release', 'actors', 'notes', 'format'];
+let draggedColumn = null;
 let deleteMovieId = null;
 let debounceTimer = null;
 let importResults = null;
@@ -375,10 +377,21 @@ function setView(view) {
 
 function saveColumnPreferences() {
   localStorage.setItem('columnPreferences', JSON.stringify(visibleColumns));
+  localStorage.setItem('columnOrder', JSON.stringify(columnOrder));
 }
 
 function loadColumnPreferences() {
   const saved = localStorage.getItem('columnPreferences');
+  const savedOrder = localStorage.getItem('columnOrder');
+
+  if (savedOrder) {
+    try {
+      columnOrder = JSON.parse(savedOrder);
+    } catch (e) {
+      console.error('Failed to load column order:', e);
+    }
+  }
+
   if (saved) {
     try {
       visibleColumns = JSON.parse(saved);
@@ -422,6 +435,43 @@ function loadColumnPreferences() {
     // Save the defaults
     saveColumnPreferences();
   }
+}
+
+function attachColumnDragHandlers() {
+  const headers = document.querySelectorAll('.column-header');
+
+  headers.forEach(header => {
+    header.addEventListener('dragstart', (e) => {
+      draggedColumn = e.target.dataset.column;
+      e.target.style.opacity = '0.5';
+    });
+
+    header.addEventListener('dragend', (e) => {
+      e.target.style.opacity = '1';
+    });
+
+    header.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    });
+
+    header.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const targetColumn = e.target.dataset.column;
+
+      if (draggedColumn && targetColumn && draggedColumn !== targetColumn) {
+        // Reorder columns
+        const draggedIndex = columnOrder.indexOf(draggedColumn);
+        const targetIndex = columnOrder.indexOf(targetColumn);
+
+        columnOrder.splice(draggedIndex, 1);
+        columnOrder.splice(targetIndex, 0, draggedColumn);
+
+        saveColumnPreferences();
+        refreshMovies();
+      }
+    });
+  });
 }
 
 function refreshMovies() {
@@ -469,22 +519,72 @@ function renderMovies(movies) {
 
   const isListView = currentView === 'list';
 
-  movieList.innerHTML = movies.map(movie => `
-    <div class="movie-card" data-id="${movie.id}">
-      <div class="movie-header">
-        <span class="movie-title">${escapeHtml(movie.title)}</span>
+  if (isListView) {
+    const columnConfig = {
+      title: { label: 'Title', width: 'minmax(180px, 1.5fr)', visible: true },
+      genre: { label: 'Genre', width: 'minmax(120px, 1fr)', visible: visibleColumns.genre },
+      release: { label: 'Year', width: 'minmax(80px, 0.8fr)', visible: visibleColumns.release },
+      actors: { label: 'Actors', width: 'minmax(150px, 1.8fr)', visible: visibleColumns.actors },
+      notes: { label: 'Notes', width: 'minmax(120px, 1fr)', visible: visibleColumns.notes },
+      format: { label: 'Format', width: 'minmax(120px, auto)', visible: true }
+    };
+
+    // Build columns based on order and visibility
+    const visibleColumnOrder = columnOrder.filter(col => columnConfig[col].visible);
+    const gridTemplate = visibleColumnOrder.map(col => columnConfig[col].width).join(' ');
+
+    // Render column headers
+    const headers = visibleColumnOrder.map(col =>
+      `<div class="column-header" draggable="true" data-column="${col}">${columnConfig[col].label}</div>`
+    ).join('');
+
+    // Render movie rows
+    const rows = movies.map(movie => {
+      const cells = visibleColumnOrder.map(col => {
+        switch(col) {
+          case 'title':
+            return `<div class="movie-header"><span class="movie-title">${escapeHtml(movie.title)}</span></div>`;
+          case 'genre':
+            return `<div class="movie-column movie-genre">${movie.genre ? escapeHtml(movie.genre) : '-'}</div>`;
+          case 'release':
+            return `<div class="movie-column movie-release">${movie.releaseDate ? escapeHtml(movie.releaseDate) : '-'}</div>`;
+          case 'actors':
+            return `<div class="movie-column movie-actors">${movie.actors ? escapeHtml(movie.actors) : '-'}</div>`;
+          case 'notes':
+            return `<div class="movie-column movie-notes">${movie.notes ? escapeHtml(movie.notes) : '-'}</div>`;
+          case 'format':
+            return `<div class="movie-meta">
+              ${visibleColumns.format ? `<span class="format-badge format-${movie.format}">${formatNames[movie.format] || movie.format}</span>` : ''}
+              ${movie.wantToUpgrade ? `<span class="upgrade-badge">Upgrade</span>` : ''}
+            </div>`;
+        }
+      }).join('');
+
+      return `<div class="movie-card" data-id="${movie.id}" style="grid-template-columns: ${gridTemplate}">${cells}</div>`;
+    }).join('');
+
+    movieList.innerHTML = `
+      <div class="column-headers" style="grid-template-columns: ${gridTemplate}">${headers}</div>
+      ${rows}
+    `;
+
+    // Attach drag and drop handlers
+    attachColumnDragHandlers();
+  } else {
+    // Grid view: traditional card layout
+    movieList.innerHTML = movies.map(movie => `
+      <div class="movie-card" data-id="${movie.id}">
+        <div class="movie-header">
+          <span class="movie-title">${escapeHtml(movie.title)}</span>
+        </div>
+        <div class="movie-meta">
+          <span class="format-badge format-${movie.format}">${formatNames[movie.format] || movie.format}</span>
+          ${movie.wantToUpgrade ? `<span class="upgrade-badge">Upgrade</span>` : ''}
+        </div>
+        ${movie.notes ? `<div class="movie-notes">${escapeHtml(movie.notes)}</div>` : ''}
       </div>
-      ${isListView && visibleColumns.genre ? `<div class="movie-column movie-genre">${movie.genre ? escapeHtml(movie.genre) : '-'}</div>` : ''}
-      ${isListView && visibleColumns.release ? `<div class="movie-column movie-release">${movie.releaseDate ? escapeHtml(movie.releaseDate) : '-'}</div>` : ''}
-      ${isListView && visibleColumns.actors ? `<div class="movie-column movie-actors">${movie.actors ? escapeHtml(movie.actors) : '-'}</div>` : ''}
-      ${isListView && visibleColumns.notes ? `<div class="movie-column movie-notes">${movie.notes ? escapeHtml(movie.notes) : '-'}</div>` : ''}
-      ${!isListView && movie.notes ? `<div class="movie-notes">${escapeHtml(movie.notes)}</div>` : ''}
-      <div class="movie-meta">
-        ${visibleColumns.format || !isListView ? `<span class="format-badge format-${movie.format}">${formatNames[movie.format] || movie.format}</span>` : ''}
-        ${movie.wantToUpgrade ? `<span class="upgrade-badge">Upgrade</span>` : ''}
-      </div>
-    </div>
-  `).join('');
+    `).join('');
+  }
 }
 
 function openModal(movie = null) {

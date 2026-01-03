@@ -306,20 +306,58 @@ body {
   gap: 0;
 }
 
-.movie-list.list-view .movie-card {
-  display: flex;
-  flex-direction: row;
+/* Column Headers */
+.column-headers {
+  display: grid;
   align-items: center;
-  padding: 12px 16px;
-  gap: 16px;
+  background: var(--bg-input);
+  border-radius: var(--radius) var(--radius) 0 0;
+  border-bottom: 2px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.column-header {
+  padding: 12px 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: grab;
+  user-select: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+
+.column-header:first-child {
+  padding-left: 16px;
+}
+
+.column-header:last-child {
+  padding-right: 16px;
+}
+
+.column-header:hover {
+  background: var(--border);
+}
+
+.column-header:active {
+  cursor: grabbing;
+}
+
+.movie-list.list-view .movie-card {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.5fr) minmax(120px, 1fr) minmax(80px, 0.8fr) minmax(150px, 1.8fr) minmax(120px, 1fr) minmax(120px, auto);
+  align-items: center;
+  padding: 0;
   border-radius: 0;
   background: var(--bg-card);
   border-bottom: 1px solid var(--border);
   cursor: pointer;
-}
-
-.movie-list.list-view .movie-card:first-child {
-  border-radius: var(--radius) var(--radius) 0 0;
 }
 
 .movie-list.list-view .movie-card:last-child {
@@ -327,60 +365,37 @@ body {
   border-bottom: none;
 }
 
-.movie-list.list-view .movie-card:only-child {
-  border-radius: var(--radius);
-}
-
 .movie-list.list-view .movie-card:hover {
   transform: none;
   background: var(--bg-input);
 }
 
+.movie-list.list-view .movie-card > * {
+  padding: 12px 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .movie-list.list-view .movie-header {
-  min-width: 200px;
-  flex: 1;
+  padding-left: 16px;
 }
 
 .movie-list.list-view .movie-title {
   font-size: 1rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .movie-list.list-view .movie-column {
   font-size: 0.85rem;
   color: var(--text-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 100px;
-  flex: 1;
-}
-
-.movie-list.list-view .movie-genre {
-  min-width: 120px;
-}
-
-.movie-list.list-view .movie-release {
-  min-width: 100px;
-}
-
-.movie-list.list-view .movie-actors {
-  min-width: 150px;
-  flex: 1.5;
-}
-
-.movie-list.list-view .movie-notes {
-  min-width: 150px;
-  flex: 1.5;
 }
 
 .movie-list.list-view .movie-meta {
-  margin-left: auto;
+  padding-right: 16px;
   display: flex;
   gap: 8px;
-  flex-shrink: 0;
+  justify-content: flex-end;
+  white-space: normal;
 }
 
 .movie-card {
