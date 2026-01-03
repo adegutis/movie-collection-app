@@ -59,6 +59,32 @@
           <button class="view-btn active" id="view-list" title="List view">☰</button>
           <button class="view-btn" id="view-grid" title="Grid view">▦</button>
         </div>
+
+        <div class="dropdown-container column-selector-container" id="column-selector-container" style="display: none;">
+          <button class="btn" id="column-selector-btn">Columns ▾</button>
+          <div class="dropdown-menu" id="column-selector-menu">
+            <label class="column-option">
+              <input type="checkbox" id="col-format" checked>
+              <span>Format</span>
+            </label>
+            <label class="column-option">
+              <input type="checkbox" id="col-genre">
+              <span>Genre</span>
+            </label>
+            <label class="column-option">
+              <input type="checkbox" id="col-release" checked>
+              <span>Release Date</span>
+            </label>
+            <label class="column-option">
+              <input type="checkbox" id="col-actors">
+              <span>Actors</span>
+            </label>
+            <label class="column-option">
+              <input type="checkbox" id="col-notes">
+              <span>Notes</span>
+            </label>
+          </div>
+        </div>
       </div>
 
       <div class="action-buttons">

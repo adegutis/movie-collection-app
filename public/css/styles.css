@@ -266,6 +266,33 @@ body {
   background: var(--bg-input);
 }
 
+/* Column Selector */
+.column-selector-container {
+  margin-left: 12px;
+}
+
+.column-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.column-option:hover {
+  background: var(--bg-input);
+}
+
+.column-option input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.column-option span {
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
 /* Grid view (default for grid mode) */
 .movie-list {
   display: grid;
@@ -280,8 +307,8 @@ body {
 }
 
 .movie-list.list-view .movie-card {
-  display: grid;
-  grid-template-columns: minmax(200px, 1fr) minmax(150px, 2fr) auto;
+  display: flex;
+  flex-direction: row;
   align-items: center;
   padding: 12px 16px;
   gap: 16px;
@@ -310,7 +337,8 @@ body {
 }
 
 .movie-list.list-view .movie-header {
-  display: contents;
+  min-width: 200px;
+  flex: 1;
 }
 
 .movie-list.list-view .movie-title {
@@ -318,24 +346,41 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  grid-column: 1;
-  grid-row: 1;
 }
 
-.movie-list.list-view .movie-meta {
-  justify-self: end;
-  grid-column: 3;
-  grid-row: 1;
-}
-
-.movie-list.list-view .movie-notes {
+.movie-list.list-view .movie-column {
   font-size: 0.85rem;
   color: var(--text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  grid-column: 2;
-  grid-row: 1;
+  min-width: 100px;
+  flex: 1;
+}
+
+.movie-list.list-view .movie-genre {
+  min-width: 120px;
+}
+
+.movie-list.list-view .movie-release {
+  min-width: 100px;
+}
+
+.movie-list.list-view .movie-actors {
+  min-width: 150px;
+  flex: 1.5;
+}
+
+.movie-list.list-view .movie-notes {
+  min-width: 150px;
+  flex: 1.5;
+}
+
+.movie-list.list-view .movie-meta {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .movie-card {

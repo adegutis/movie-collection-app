@@ -15,6 +15,14 @@ const exportBtn = document.getElementById('export-btn');
 const exportMenu = document.getElementById('export-menu');
 const exportJsonBtn = document.getElementById('export-json');
 const exportCsvBtn = document.getElementById('export-csv');
+const columnSelectorContainer = document.getElementById('column-selector-container');
+const columnSelectorBtn = document.getElementById('column-selector-btn');
+const columnSelectorMenu = document.getElementById('column-selector-menu');
+const colFormatCheckbox = document.getElementById('col-format');
+const colGenreCheckbox = document.getElementById('col-genre');
+const colReleaseCheckbox = document.getElementById('col-release');
+const colActorsCheckbox = document.getElementById('col-actors');
+const colNotesCheckbox = document.getElementById('col-notes');
 
 // Modal elements
 const movieModal = document.getElementById('movie-modal');
@@ -89,6 +97,13 @@ let currentFilters = {
   sortOrder: 'asc'
 };
 let currentView = 'list'; // 'list' or 'grid'
+let visibleColumns = {
+  format: true,
+  genre: false,
+  release: true,
+  actors: false,
+  notes: false
+};
 let deleteMovieId = null;
 let debounceTimer = null;
 let importResults = null;
@@ -107,6 +122,7 @@ const formatNames = {
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
+  loadColumnPreferences(); // Load saved column preferences
   setView('list'); // Default to list view
   loadMovies();
   loadStats();
@@ -192,6 +208,50 @@ function setupEventListeners() {
   // View toggle
   viewListBtn.addEventListener('click', () => setView('list'));
   viewGridBtn.addEventListener('click', () => setView('grid'));
+
+  // Column selector
+  columnSelectorBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    columnSelectorMenu.classList.toggle('active');
+  });
+
+  // Close column selector when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!columnSelectorContainer.contains(e.target)) {
+      columnSelectorMenu.classList.remove('active');
+    }
+  });
+
+  // Column checkboxes
+  colFormatCheckbox.addEventListener('change', () => {
+    visibleColumns.format = colFormatCheckbox.checked;
+    saveColumnPreferences();
+    refreshMovies();
+  });
+
+  colGenreCheckbox.addEventListener('change', () => {
+    visibleColumns.genre = colGenreCheckbox.checked;
+    saveColumnPreferences();
+    refreshMovies();
+  });
+
+  colReleaseCheckbox.addEventListener('change', () => {
+    visibleColumns.release = colReleaseCheckbox.checked;
+    saveColumnPreferences();
+    refreshMovies();
+  });
+
+  colActorsCheckbox.addEventListener('change', () => {
+    visibleColumns.actors = colActorsCheckbox.checked;
+    saveColumnPreferences();
+    refreshMovies();
+  });
+
+  colNotesCheckbox.addEventListener('change', () => {
+    visibleColumns.notes = colNotesCheckbox.checked;
+    saveColumnPreferences();
+    refreshMovies();
+  });
 
   // Details modal
   closeDetailsBtn.addEventListener('click', closeDetailsModal);
@@ -301,11 +361,71 @@ function setView(view) {
     movieList.classList.add('list-view');
     viewListBtn.classList.add('active');
     viewGridBtn.classList.remove('active');
+    columnSelectorContainer.style.display = 'block';
   } else {
     movieList.classList.remove('list-view');
     viewGridBtn.classList.add('active');
     viewListBtn.classList.remove('active');
+    columnSelectorContainer.style.display = 'none';
+    columnSelectorMenu.classList.remove('active');
   }
+
+  refreshMovies();
+}
+
+function saveColumnPreferences() {
+  localStorage.setItem('columnPreferences', JSON.stringify(visibleColumns));
+}
+
+function loadColumnPreferences() {
+  const saved = localStorage.getItem('columnPreferences');
+  if (saved) {
+    try {
+      visibleColumns = JSON.parse(saved);
+      // Update checkboxes to match loaded preferences
+      colFormatCheckbox.checked = visibleColumns.format;
+      colGenreCheckbox.checked = visibleColumns.genre;
+      colReleaseCheckbox.checked = visibleColumns.release;
+      colActorsCheckbox.checked = visibleColumns.actors;
+      colNotesCheckbox.checked = visibleColumns.notes;
+    } catch (e) {
+      console.error('Failed to load column preferences:', e);
+    }
+  } else {
+    // Set defaults based on screen size for first-time users
+    const isMobile = window.innerWidth < 768;
+    if (isMobile) {
+      // Mobile: Title and Format only
+      visibleColumns = {
+        format: true,
+        genre: false,
+        release: false,
+        actors: false,
+        notes: false
+      };
+    } else {
+      // Desktop: Title, Release Date, and Format
+      visibleColumns = {
+        format: true,
+        genre: false,
+        release: true,
+        actors: false,
+        notes: false
+      };
+    }
+    // Update checkboxes to match defaults
+    colFormatCheckbox.checked = visibleColumns.format;
+    colGenreCheckbox.checked = visibleColumns.genre;
+    colReleaseCheckbox.checked = visibleColumns.release;
+    colActorsCheckbox.checked = visibleColumns.actors;
+    colNotesCheckbox.checked = visibleColumns.notes;
+    // Save the defaults
+    saveColumnPreferences();
+  }
+}
+
+function refreshMovies() {
+  loadMovies();
 }
 
 async function loadMovies() {
@@ -347,16 +467,22 @@ function renderMovies(movies) {
     return;
   }
 
+  const isListView = currentView === 'list';
+
   movieList.innerHTML = movies.map(movie => `
     <div class="movie-card" data-id="${movie.id}">
       <div class="movie-header">
         <span class="movie-title">${escapeHtml(movie.title)}</span>
       </div>
+      ${isListView && visibleColumns.genre ? `<div class="movie-column movie-genre">${movie.genre ? escapeHtml(movie.genre) : '-'}</div>` : ''}
+      ${isListView && visibleColumns.release ? `<div class="movie-column movie-release">${movie.releaseDate ? escapeHtml(movie.releaseDate) : '-'}</div>` : ''}
+      ${isListView && visibleColumns.actors ? `<div class="movie-column movie-actors">${movie.actors ? escapeHtml(movie.actors) : '-'}</div>` : ''}
+      ${isListView && visibleColumns.notes ? `<div class="movie-column movie-notes">${movie.notes ? escapeHtml(movie.notes) : '-'}</div>` : ''}
+      ${!isListView && movie.notes ? `<div class="movie-notes">${escapeHtml(movie.notes)}</div>` : ''}
       <div class="movie-meta">
-        <span class="format-badge format-${movie.format}">${formatNames[movie.format] || movie.format}</span>
+        ${visibleColumns.format || !isListView ? `<span class="format-badge format-${movie.format}">${formatNames[movie.format] || movie.format}</span>` : ''}
         ${movie.wantToUpgrade ? `<span class="upgrade-badge">Upgrade</span>` : ''}
       </div>
-      ${movie.notes ? `<div class="movie-notes">${escapeHtml(movie.notes)}</div>` : ''}
     </div>
   `).join('');
 }
