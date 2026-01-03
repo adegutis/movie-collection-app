@@ -214,6 +214,7 @@ function setupEventListeners() {
   // Column selector
   columnSelectorBtn.addEventListener('click', (e) => {
     e.stopPropagation();
+    exportMenu.classList.remove('active'); // Close export menu
     columnSelectorMenu.classList.toggle('active');
   });
 
@@ -221,6 +222,9 @@ function setupEventListeners() {
   document.addEventListener('click', (e) => {
     if (!columnSelectorContainer.contains(e.target)) {
       columnSelectorMenu.classList.remove('active');
+    }
+    if (!exportBtn.contains(e.target) && !exportMenu.contains(e.target)) {
+      exportMenu.classList.remove('active');
     }
   });
 
@@ -336,12 +340,8 @@ function setupEventListeners() {
   // Export dropdown
   exportBtn.addEventListener('click', (e) => {
     e.stopPropagation();
+    columnSelectorMenu.classList.remove('active'); // Close column selector
     exportMenu.classList.toggle('active');
-  });
-
-  // Close dropdown when clicking outside
-  document.addEventListener('click', () => {
-    exportMenu.classList.remove('active');
   });
 
   // Export actions
